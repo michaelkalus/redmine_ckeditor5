@@ -21,6 +21,13 @@
   <%= check_box_tag 'settings[toolbar_can_collapse]', '1', RedmineCkeditorSetting.group_toolbar_items? %>
   <em class="info"><%= l(:ckeditor_group_toolbar_items_help) %></em>
 </p>
+<% %w[user_mentions issue_mentions issue_mention_backref file_uploads].each do |flag| %>
+<p>
+  <%= content_tag :label, l(:"ckeditor_#{flag}") %>
+  <%= hidden_field_tag "settings[#{flag}]", '0', id: nil %>
+  <%= check_box_tag "settings[#{flag}]", '1', RedmineCkeditorSetting.flag?(flag) %>
+</p>
+<% end %>
 <p>
   <%= content_tag :label, l(:ckeditor_toolbar_buttons) %>
   <%= text_area_tag 'settings[toolbar]', RedmineCkeditorSetting.toolbar_string, rows: 5, cols: 80 %>

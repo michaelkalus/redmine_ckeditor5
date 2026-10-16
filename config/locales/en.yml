@@ -9,3 +9,15 @@ en:
   ckeditor_toolbar_help: "Comma-separated CKEditor 5 toolbar item names. Existing CKEditor 4 names are converted automatically."
   ckeditor_license_notice: "CKEditor 5 is self-hosted with the GPL key by default. Configure a commercial self-hosting key in config/ckeditor.yml when required."
   ckeditor_image_only: "Only image uploads are accepted by the editor."
+  ckeditor_heading_paragraph: Paragraph
+  ckeditor_heading_1: Heading 1
+  ckeditor_heading_2: Heading 2
+  ckeditor_heading_3: Heading 3
+  ckeditor_issue_mentioned_in: Mentioned in
+  ckeditor_uploading: Uploading
+  ckeditor_insert_file: Insert file
+  ckeditor_upload_missing: No file was uploaded.
+  ckeditor_user_mentions: "@user mentions"
+  ckeditor_issue_mentions: "#issue mentions"
+  ckeditor_issue_mention_backref: Add a note to mentioned issues
+  ckeditor_file_uploads: Insert documents as attachments

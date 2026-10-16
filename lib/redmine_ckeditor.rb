@@ -42,7 +42,7 @@ module RedmineCkeditor
         heading | bold italic underline strikethrough subscript superscript code |
         fontFamily fontSize
         fontColor fontBackgroundColor | bulletedList numberedList todoList | outdent
-        indent alignment blockQuote codeBlock | link uploadImage mediaEmbed insertTable
+        indent alignment blockQuote codeBlock | link uploadImage insertFile mediaEmbed insertTable
         horizontalLine specialCharacters highlight | findAndReplace removeFormat
         showBlocks sourceEditing | undo redo
       ].join(',')

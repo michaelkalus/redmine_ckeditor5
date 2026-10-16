@@ -1,0 +1,23 @@
+cs:
+  ckeditor_ui_color: Barva rozhraní
+  ckeditor_width: Šířka
+  ckeditor_toolbar_buttons: Tlačítka panelu nástrojů
+  ckeditor_height: Výška
+  ckeditor_startup_show_blocks: Zobrazit bloky při spuštění
+  ckeditor_group_toolbar_items: Seskupit přetékající tlačítka
+  ckeditor_group_toolbar_items_help: "Použije nabídku „další“ CKEditoru 5. Po vypnutí se tlačítka zalomí na další řádky."
+  ckeditor_toolbar_help: "Názvy tlačítek CKEditoru 5 oddělené čárkou. Názvy z CKEditoru 4 se převedou automaticky."
+  ckeditor_license_notice: "CKEditor 5 běží self-hosted s klíčem GPL. Komerční klíč lze nastavit v config/ckeditor.yml."
+  ckeditor_image_only: Editor přijímá jen obrázky.
+  ckeditor_heading_paragraph: Odstavec
+  ckeditor_heading_1: Nadpis 1
+  ckeditor_heading_2: Nadpis 2
+  ckeditor_heading_3: Nadpis 3
+  ckeditor_issue_mentioned_in: Zmíněno v
+  ckeditor_uploading: Nahrávám
+  ckeditor_insert_file: Vložit soubor
+  ckeditor_upload_missing: Nebyl nahrán žádný soubor.
+  ckeditor_user_mentions: "@zmínky uživatelů"
+  ckeditor_issue_mentions: "#zmínky úkolů"
+  ckeditor_issue_mention_backref: Zapsat poznámku do zmíněného úkolu
+  ckeditor_file_uploads: Vkládat dokumenty jako přílohy

@@ -45,8 +45,40 @@ class RedmineCkeditorSetting
         result << item
       end
       result.pop if result.last == '|'
-      result
+      normalize_insert_file(result)
     end
+
+    def normalize_insert_file(items)
+      items = items.reject { |item| item == 'insertFile' }
+      return collapse_separators(items) unless file_uploads?
+
+      index = items.index('uploadImage')
+      if index
+        items.insert(index + 1, 'insertFile')
+      else
+        items << '|' unless items.empty? || items.last == '|'
+        items << 'insertFile'
+      end
+      items
+    end
+
+    def collapse_separators(items)
+      items.each_with_object([]) do |item, out|
+        next if item == '|' && (out.empty? || out.last == '|')
+
+        out << item
+      end.tap { |out| out.pop if out.last == '|' }
+    end
+
+    def user_mentions? = flag?('user_mentions')
+
+    def issue_mentions? = flag?('issue_mentions')
+
+    def issue_mention_backref? = flag?('issue_mention_backref')
+
+    def file_uploads? = flag?('file_uploads')
+
+    def flag?(key) = !%w[0 false].include?(setting.fetch(key, '1').to_s)
 
     def width = setting['width'].presence
 
