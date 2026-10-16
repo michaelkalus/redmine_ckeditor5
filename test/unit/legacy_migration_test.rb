@@ -34,4 +34,35 @@ class RedmineCkeditorLegacyMigrationTest < ActiveSupport::TestCase
 
     assert_equal path, migration.send(:rewrite_urls, path, path => '/attachments/42/test.png')
   end
+
+  def run_migration_up(flag)
+    require Rails.root.join('plugins/redmine_ckeditor/db/migrate/20260721000000_migrate_rich_uploads_to_attachments')
+    result = RedmineCkeditor::LegacyMigration::Result.new(migrated: 1, skipped: 0, failed: 0, rewritten: 0)
+    old = ENV['REDMINE_CKEDITOR_MIGRATE_RICH']
+    flag.nil? ? ENV.delete('REDMINE_CKEDITOR_MIGRATE_RICH') : ENV['REDMINE_CKEDITOR_MIGRATE_RICH'] = flag
+    ActiveRecord::Migration.suppress_messages do
+      yield result
+      MigrateRichUploadsToAttachments.new.up
+    end
+  ensure
+    old.nil? ? ENV.delete('REDMINE_CKEDITOR_MIGRATE_RICH') : ENV['REDMINE_CKEDITOR_MIGRATE_RICH'] = old
+  end
+
+  def test_plugin_migration_skips_rich_conversion_without_flag
+    run_migration_up(nil) do |_result|
+      RedmineCkeditor::LegacyMigration.any_instance.expects(:up).never
+    end
+  end
+
+  def test_plugin_migration_skips_rich_conversion_with_other_flag_value
+    run_migration_up('0') do |_result|
+      RedmineCkeditor::LegacyMigration.any_instance.expects(:up).never
+    end
+  end
+
+  def test_plugin_migration_runs_rich_conversion_with_flag
+    run_migration_up('1') do |result|
+      RedmineCkeditor::LegacyMigration.any_instance.expects(:up).once.returns(result)
+    end
+  end
 end

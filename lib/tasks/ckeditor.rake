@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 namespace :redmine_ckeditor do
-  desc 'Retry and report migration of legacy Rich uploads/content'
+  desc 'Run (opt-in) or retry and report migration of legacy Rich uploads/content'
   task migrate_legacy: :environment do
     result = RedmineCkeditor::LegacyMigration.new.retry_failed
     puts "Migrated: #{result.migrated}"

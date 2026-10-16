@@ -38,6 +38,11 @@ plugin id `redmine_ckeditor` and adds the following on top of upstream.
 - **Settings.** Four flags, all enabled by default: `user_mentions`,
   `issue_mentions`, `issue_mention_backref` and `file_uploads`. With
   `file_uploads` on, `insertFile` is added to stored toolbars automatically.
+- **Legacy Rich conversion is opt-in.** The plugin migration only creates its
+  tables. Convert Rich files with
+  `REDMINE_CKEDITOR_MIGRATE_RICH=1 bin/rails redmine:plugins:migrate NAME=redmine_ckeditor`
+  or `bin/rails redmine_ckeditor:migrate_legacy`. Ownerless Rich files would
+  become author-only attachments, invisible to normal users.
 - **Init fix (note for upstream).** `init.rb` calls `RedmineCkeditor.apply_patch`
   directly. Redmine 6.1 runs plugin `init.rb` inside a `to_prepare` callback,
   so a nested `to_prepare` registered there never runs.
