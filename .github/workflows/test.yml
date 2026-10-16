@@ -121,3 +121,4 @@ jobs:
           bin/rails db:create db:migrate
           bin/rails redmine:plugins:migrate
           bin/rails assets:precompile
+          bin/rails zeitwerk:check
