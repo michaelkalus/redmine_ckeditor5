@@ -179,7 +179,9 @@ function loadIntegration({ readyState = 'complete', attachmentInput = {} } = {})
       document.readyState = 'complete';
       return listeners.get(name)?.(...args);
     },
-    integration: window.RedmineCKEditor
+    integration: window.RedmineCKEditor,
+    bundle: window.RedmineCKEditor5,
+    window
   };
 }
 
@@ -363,4 +365,20 @@ test('AJAX replacement cancels old updates and removes stale form listeners', as
   assert.equal(environment.timers.size, 0);
   assert.equal(oldEditor.dataReads, oldReads);
   assert.equal(formData.get(replacement.name), '<p>Replacement</p>');
+});
+
+test('passes Czech translations when the language is cs', async () => {
+  const environment = loadIntegration();
+  environment.addTextarea('issue_notes');
+  environment.bundle.translations = { cs: { cs: { dictionary: {} } } };
+  await environment.integration.replace('issue_notes', { language: 'cs' });
+  assert.deepEqual(environment.createdConfigs[0].translations, [environment.bundle.translations.cs]);
+});
+
+test('does not pass translations for English', async () => {
+  const environment = loadIntegration();
+  environment.addTextarea('issue_notes');
+  environment.bundle.translations = { cs: {} };
+  await environment.integration.replace('issue_notes', { language: 'en' });
+  assert.equal(environment.createdConfigs[0].translations, undefined);
 });

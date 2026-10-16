@@ -168,6 +168,9 @@
       plugins: bundle.plugins,
       extraPlugins: [bundle.RedmineUpload]
     });
+    if (config.language && config.language !== 'en' && bundle.translations?.[config.language]) {
+      config.translations = [bundle.translations[config.language]];
+    }
     if (config.htmlSupport?.allow) {
       config.htmlSupport.allow = config.htmlSupport.allow.map(rule =>
         rule.name === '$all' ? Object.assign({}, rule, { name: /.*/ }) : rule

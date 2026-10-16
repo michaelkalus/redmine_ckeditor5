@@ -55,6 +55,7 @@ import {
 } from 'ckeditor5';
 import { ClassicEditor } from 'ckeditor5';
 import 'ckeditor5/ckeditor5.css';
+import csTranslations from 'ckeditor5/translations/cs.js';
 
 class RedmineUploadAdapter {
   constructor(loader, editor) {
@@ -123,6 +124,7 @@ function RedmineUpload(editor) {
 window.RedmineCKEditor5 = {
   ClassicEditor,
   RedmineUpload,
+  translations: { cs: csTranslations },
   plugins: [
     AccessibilityHelp,
     Alignment,

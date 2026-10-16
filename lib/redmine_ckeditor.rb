@@ -60,22 +60,16 @@ module RedmineCkeditor
       end
     end
 
-    def options(upload_url: nil, preview_url: nil)
+    def options(upload_url: nil, preview_url: nil, file_upload_url: nil, mentions: {})
       editor_config = ckeditor_config.except(:allowedProtocols, :allowedTags, :allowedAttributes)
       defaults = {
+        language: editor_language,
         licenseKey: 'GPL',
         toolbar: {
           items: RedmineCkeditorSetting.toolbar,
           shouldNotGroupWhenFull: !RedmineCkeditorSetting.group_toolbar_items?
         },
-        heading: {
-          options: [
-            {model: 'paragraph', title: 'Paragraph', class: 'ck-heading_paragraph'},
-            {model: 'heading1', view: 'h1', title: 'Heading 1', class: 'ck-heading_heading1'},
-            {model: 'heading2', view: 'h2', title: 'Heading 2', class: 'ck-heading_heading2'},
-            {model: 'heading3', view: 'h3', title: 'Heading 3', class: 'ck-heading_heading3'}
-          ]
-        },
+        heading: {options: heading_options},
         htmlSupport: {
           allow: [{name: '$all', attributes: true, classes: true, styles: true}]
         },
@@ -91,7 +85,13 @@ module RedmineCkeditor
         },
         mediaEmbed: {previewsInData: true},
         style: {definitions: []},
-        redmineUpload: {uploadUrl: upload_url},
+        redmineUpload: {
+          uploadUrl: upload_url,
+          fileUploadUrl: file_upload_url,
+          uploadingLabel: ::I18n.t(:ckeditor_uploading),
+          insertFileLabel: ::I18n.t(:ckeditor_insert_file)
+        },
+        redmineMentions: mentions,
         redminePreviewUrl: preview_url,
         redmineHeight: RedmineCkeditorSetting.height,
         redmineWidth: RedmineCkeditorSetting.width,
@@ -99,6 +99,17 @@ module RedmineCkeditor
         redmineShowBlocks: RedmineCkeditorSetting.show_blocks?
       }
       defaults.deep_merge(editor_config)
+    end
+
+    def editor_language = (::I18n.locale.to_s.start_with?('cs') ? 'cs' : 'en')
+
+    def heading_options
+      [
+        {model: 'paragraph', title: ::I18n.t(:ckeditor_heading_paragraph), class: 'ck-heading_paragraph'},
+        {model: 'heading1', view: 'h1', title: ::I18n.t(:ckeditor_heading_1), class: 'ck-heading_heading1'},
+        {model: 'heading2', view: 'h2', title: ::I18n.t(:ckeditor_heading_2), class: 'ck-heading_heading2'},
+        {model: 'heading3', view: 'h3', title: ::I18n.t(:ckeditor_heading_3), class: 'ck-heading_heading3'}
+      ]
     end
 
     def enabled?
