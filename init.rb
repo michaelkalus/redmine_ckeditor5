@@ -3,12 +3,12 @@ require_relative 'lib/redmine_ckeditor'
 
 Redmine::Plugin.register :redmine_ckeditor do
   name 'Redmine CKEditor plugin'
-  author 'HicknHack Software GmbH'
+  author 'HicknHack Software GmbH, Michael Kalus'
   author_url 'http://www.hicknhack-software.com'
   description 'This is a CKEditor plugin for Redmine'
-  version '2.0.1'
+  version '2.0.1-fork.1'
   requires_redmine :version_or_higher => '6.1.0'
-  url 'https://github.com/hicknhack-software/redmine_ckeditor'
+  url 'https://github.com/michaelkalus/redmine_ckeditor5'
 
   settings(:partial => 'settings/ckeditor')
 

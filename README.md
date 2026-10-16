@@ -7,6 +7,51 @@ This plugin is a new implementation by HicknHack Software GmbH, inspired by
 Akihiro Ono's [original Redmine CKEditor plugin](https://github.com/a-ono/redmine_ckeditor).
 It shares no code with the previous plugin.
 
+## Fork additions
+
+This fork (`michaelkalus/redmine_ckeditor5`, version `2.0.1-fork.1`) keeps the
+plugin id `redmine_ckeditor` and adds the following on top of upstream.
+
+- **Czech UI.** Editor language `cs`, localized headings and a Czech plugin
+  locale (`config/locales/cs.yml`).
+- **Mentions.** `@login` and `#id` mentions are stored as plain text, so
+  Redmine core detects them and sends its normal notifications.
+  - The `@` suggestions endpoint `/redmine_ckeditor/mentions/users` needs only
+    `view_issues` (not `add_issue_watchers`). It matches login, first name and
+    last name only (never e-mail) and returns only active, visible users who
+    can see the issue (or who have `view_issues` in the project when no issue
+    exists yet).
+  - Quotes (`blockquote`), `pre` and `code` are not scanned for mentions.
+- **Backref note.** When an issue is mentioned as `#N`, a note "Mentioned in #N"
+  (Czech: "Zmineno v") is added to issue N. It is skipped for private issues
+  and private notes, requires that the target is visible and that the author of
+  the source has `add_issue_notes` on it, and is created once per source record
+  (`journal:<id>` or `issue:<id>`). The author is not subscribed as a watcher
+  of the target. Failures are logged and never break the save.
+- **Document uploads.** The paperclip toolbar button, paste and drop upload
+  files as unattached attachments (`POST /redmine_ckeditor/uploads?kind=file`).
+  Redmine's attachment size and extension settings apply. A hidden token binds
+  the attachments to the record on save. Remove orphans with
+  `bundle exec rake redmine:attachments:prune`.
+- **Settings.** Four flags, all enabled by default: `user_mentions`,
+  `issue_mentions`, `issue_mention_backref` and `file_uploads`. With
+  `file_uploads` on, `insertFile` is added to stored toolbars automatically.
+- **Init fix (note for upstream).** `init.rb` calls `RedmineCkeditor.apply_patch`
+  directly. Redmine 6.1 runs plugin `init.rb` inside a `to_prepare` callback,
+  so a nested `to_prepare` registered there never runs.
+
+### Syncing with upstream
+
+```sh
+git fetch upstream && git merge upstream/main
+npm ci && npm run build
+git add assets/javascripts/ckeditor5.js assets/javascripts/ckeditor5.css
+git commit
+```
+
+The committed bundle must always equal the `npm run build` output; CI fails
+otherwise.
+
 ## Compatibility
 
 - Redmine 6.1 or newer
