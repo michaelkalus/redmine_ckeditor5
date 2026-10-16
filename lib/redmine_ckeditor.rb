@@ -122,6 +122,8 @@ module RedmineCkeditor
       MailHandler.prepend(MailHandlerPatch) unless MailHandler < MailHandlerPatch
       MessagesController.prepend(MessagesControllerPatch) unless MessagesController < MessagesControllerPatch
       QueriesHelper.prepend(QueriesHelperPatch) unless QueriesHelper < QueriesHelperPatch
+      mentionable = Redmine::Acts::Mentionable::InstanceMethods
+      mentionable.prepend(MentionablePatch) unless mentionable < MentionablePatch
     end
   end
 end
@@ -133,3 +135,5 @@ require_relative 'redmine_ckeditor/journals_controller_patch'
 require_relative 'redmine_ckeditor/messages_controller_patch'
 require_relative 'redmine_ckeditor/mail_handler_patch'
 require_relative 'redmine_ckeditor/legacy_migration'
+require_relative 'redmine_ckeditor/html_mention_text'
+require_relative 'redmine_ckeditor/mentionable_patch'
