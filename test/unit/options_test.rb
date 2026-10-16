@@ -9,7 +9,7 @@ class RedmineCkeditorOptionsTest < ActiveSupport::TestCase
     assert_equal 'cs', options[:language]
     assert_equal 'Odstavec', options[:heading][:options][0][:title]
     assert_equal 'Nadpis 2', options[:heading][:options][2][:title]
-    assert_equal 'Nahrávám', options[:redmineUpload][:uploadingLabel]
+    assert_equal "Nahr\u00e1v\u00e1m", options[:redmineUpload][:uploadingLabel]
   end
 
   def test_other_languages_fall_back_to_english_ui
