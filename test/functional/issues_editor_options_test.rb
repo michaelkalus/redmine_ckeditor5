@@ -38,6 +38,7 @@ class RedmineCkeditorIssuesEditorOptionsTest < Redmine::ControllerTest
       get :show, params: {id: 1}
     end
 
+    assert_not_empty mentions_config
     assert_includes mentions_config, 'redmine_ckeditor/mentions/users'
     assert_not_includes mentions_config, 'issues/auto_complete'
   end
@@ -47,6 +48,7 @@ class RedmineCkeditorIssuesEditorOptionsTest < Redmine::ControllerTest
       get :show, params: {id: 1}
     end
 
+    assert_not_empty mentions_config
     assert_includes mentions_config, 'issues/auto_complete'
     assert_not_includes mentions_config, 'redmine_ckeditor/mentions/users'
   end
