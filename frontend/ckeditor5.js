@@ -33,6 +33,7 @@ import {
   List,
   ListProperties,
   MediaEmbed,
+  Mention,
   Paragraph,
   PasteFromOffice,
   RemoveFormat,
@@ -54,6 +55,7 @@ import {
   Underline
 } from 'ckeditor5';
 import { ClassicEditor } from 'ckeditor5';
+import { RedmineMentions, buildMentionFeeds } from './redmine_mentions.mjs';
 import 'ckeditor5/ckeditor5.css';
 import csTranslations from 'ckeditor5/translations/cs.js';
 
@@ -124,6 +126,8 @@ function RedmineUpload(editor) {
 window.RedmineCKEditor5 = {
   ClassicEditor,
   RedmineUpload,
+  buildMentionFeeds,
+  extraPlugins: [RedmineMentions],
   translations: { cs: csTranslations },
   plugins: [
     AccessibilityHelp,
@@ -160,6 +164,7 @@ window.RedmineCKEditor5 = {
     List,
     ListProperties,
     MediaEmbed,
+    Mention,
     Paragraph,
     PasteFromOffice,
     RemoveFormat,

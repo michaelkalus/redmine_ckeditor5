@@ -382,3 +382,17 @@ test('does not pass translations for English', async () => {
   await environment.integration.replace('issue_notes', { language: 'en' });
   assert.equal(environment.createdConfigs[0].translations, undefined);
 });
+
+test('builds mention feeds and adds extra plugins', async () => {
+  const environment = loadIntegration();
+  environment.addTextarea('issue_notes');
+  const extra = () => {};
+  environment.bundle.extraPlugins = [extra];
+  environment.bundle.buildMentionFeeds = sources => [{ marker: '@', sources }];
+  await environment.integration.replace('issue_notes', { redmineMentions: { usersUrl: '/m' } });
+  const config = environment.createdConfigs[0];
+  assert.deepEqual(config.mention, { feeds: [{ marker: '@', sources: { usersUrl: '/m' } }] });
+  assert.equal(config.redmineMentions, undefined);
+  assert.ok(config.extraPlugins.includes(extra));
+  assert.ok(config.extraPlugins.includes(environment.bundle.RedmineUpload));
+});

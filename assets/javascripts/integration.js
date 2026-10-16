@@ -166,8 +166,12 @@
 
     const config = Object.assign({}, options || {}, {
       plugins: bundle.plugins,
-      extraPlugins: [bundle.RedmineUpload]
+      extraPlugins: [bundle.RedmineUpload, ...(bundle.extraPlugins || [])]
     });
+    if (config.redmineMentions) {
+      config.mention = { feeds: bundle.buildMentionFeeds ? bundle.buildMentionFeeds(config.redmineMentions) : [] };
+      delete config.redmineMentions;
+    }
     if (config.language && config.language !== 'en' && bundle.translations?.[config.language]) {
       config.translations = [bundle.translations[config.language]];
     }
