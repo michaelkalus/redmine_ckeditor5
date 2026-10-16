@@ -28,4 +28,26 @@ class RedmineCkeditorIssuesEditorOptionsTest < Redmine::ControllerTest
 
     assert_match(/mentions\/users\?project_id=1(?!&|\\u0026)/, response.body)
   end
+
+  def mentions_config
+    response.body[/redmineMentions":(\{[^}]*\})/, 1].to_s
+  end
+
+  def test_issue_mentions_disabled_omits_issues_url
+    with_settings(text_formatting: 'CKEditor', plugin_redmine_ckeditor: {'issue_mentions' => '0'}) do
+      get :show, params: {id: 1}
+    end
+
+    assert_includes mentions_config, 'redmine_ckeditor/mentions/users'
+    assert_not_includes mentions_config, 'issues/auto_complete'
+  end
+
+  def test_user_mentions_disabled_omits_users_url
+    with_settings(text_formatting: 'CKEditor', plugin_redmine_ckeditor: {'user_mentions' => '0'}) do
+      get :show, params: {id: 1}
+    end
+
+    assert_includes mentions_config, 'issues/auto_complete'
+    assert_not_includes mentions_config, 'redmine_ckeditor/mentions/users'
+  end
 end

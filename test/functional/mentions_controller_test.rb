@@ -32,6 +32,9 @@ class RedmineCkeditorMentionsControllerTest < Redmine::ControllerTest
   end
 
   def test_excludes_locked_users
+    get :users, params: {project_id: 1, q: 'j'}
+    assert_includes logins, 'jsmith'
+
     User.find(2).lock!
     get :users, params: {project_id: 1, q: 'j'}
 
@@ -63,6 +66,49 @@ class RedmineCkeditorMentionsControllerTest < Redmine::ControllerTest
     with_settings(plugin_redmine_ckeditor: {'user_mentions' => '0'}) do
       get :users, params: {project_id: 1, q: 'j'}
     end
+
+    assert_response :not_found
+  end
+
+  def test_email_address_is_not_searchable
+    get :users, params: {project_id: 1, q: 'jsmith@somenet.foo'}
+
+    assert_response :success
+    assert_equal [], logins
+
+    get :users, params: {project_id: 1, q: 'jsmith'}
+    assert_includes logins, 'jsmith'
+  end
+
+  def test_searches_first_and_last_name_tokens
+    get :users, params: {project_id: 1, q: 'john smi'}
+
+    assert_includes logins, 'jsmith'
+  end
+
+  def test_project_mode_excludes_members_without_view_issues
+    user = User.find(4)
+    Member.where(user_id: 4, project_id: 1).destroy_all
+    Member.create!(principal: user, project: Project.find(1), role_ids: [3])
+    get :users, params: {project_id: 1, q: user.login}
+    assert_includes logins, user.login
+
+    Role.find(3).remove_permission!(:view_issues)
+    get :users, params: {project_id: 1, q: user.login}
+    refute_includes logins, user.login
+  end
+
+  def test_anonymous_gets_no_suggestions
+    @request.session[:user_id] = nil
+    get :users, params: {project_id: 1, q: 'j'}
+
+    assert_not response.successful?
+  end
+
+  def test_issue_invisible_to_requester_is_not_found
+    Project.find(2).update_column(:is_public, false)
+    Member.where(user_id: 3, project_id: 2).destroy_all
+    get :users, params: {issue_id: 4, q: ''}
 
     assert_response :not_found
   end
