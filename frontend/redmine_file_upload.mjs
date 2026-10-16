@@ -20,11 +20,33 @@ function hasAttachmentsForm(editor) {
   return Boolean(editor.sourceElement?.closest('form')?.querySelector('.attachments_form input[type="file"][name^="attachments["]'));
 }
 
+export function textInsertionPosition(editor, writer, position, element) {
+  const schema = editor.model.schema;
+  if (schema.checkChild(position, '$text')) return position;
+  const range = schema.getNearestSelectionRange(position);
+  if (range && schema.checkChild(range.start, '$text')) return range.start;
+  let at = element ? writer.createPositionAfter(element) : position;
+  while (at.parent?.parent && !schema.checkChild(at, 'paragraph')) at = writer.createPositionAfter(at.parent);
+  const paragraph = writer.createElement('paragraph');
+  writer.insert(paragraph, at);
+  return writer.createPositionAt(paragraph, 0);
+}
+
 export function RedmineFileUpload(editor) {
   const labels = new Map();
   let counter = 0;
   const enabled = () => Boolean(editor.config.get('redmineUpload.fileUploadUrl')) && hasAttachmentsForm(editor);
-  const alive = () => editor.state !== 'destroyed';
+  const active = new Set();
+  let destroyed = false;
+  const alive = () => !destroyed && editor.state !== 'destroyed';
+  let fileRepository;
+  const repository = () => fileRepository || (fileRepository = editor.plugins.get('FileRepository'));
+
+  editor.on('destroy', () => {
+    destroyed = true;
+    active.forEach(loader => loader.abort());
+    active.clear();
+  });
 
   editor.conversion.for('editingDowncast').markerToElement({
     model: MARKER_GROUP,
@@ -36,50 +58,65 @@ export function RedmineFileUpload(editor) {
     })
   });
 
-  function uploadDocument(file, position) {
-    const repository = editor.plugins.get('FileRepository');
-    let loader;
+  function createLoader(file) {
     editor._redmineUploadKind = 'file';
     try {
-      loader = repository.createLoader(file);
+      return repository().createLoader(file);
     } finally {
       editor._redmineUploadKind = undefined;
     }
+  }
+
+  function insertLink(writer, name, data, file) {
+    const marker = editor.model.markers.get(name);
+    if (!marker) return;
+    let start = marker.getStart();
+    if (start.root?.rootName === '$graveyard') return;
+    const schema = editor.model.schema;
+    if (!schema.checkChild(start, '$text')) start = textInsertionPosition(editor, writer, start);
+    const text = data?.filename || file.name;
+    const linkable = data?.default && schema.checkAttribute(schema.createContext(start).push('$text'), 'linkHref');
+    writer.insertText(text, linkable ? { linkHref: data.default } : {}, start);
+    writer.insertText(' ', start.getShiftedBy(text.length));
+  }
+
+  function uploadDocument(file, writer, at) {
+    const loader = createLoader(file);
     if (!loader) return;
 
     const name = `${MARKER_GROUP}:${++counter}`;
     labels.set(name, file.name);
-    editor.model.change(writer => {
-      const at = position || editor.model.document.selection.getFirstPosition();
-      writer.addMarker(name, { range: writer.createRange(at), usingOperation: false, affectsData: false });
-    });
+    writer.addMarker(name, { range: writer.createRange(at), usingOperation: false, affectsData: false });
+    active.add(loader);
 
     loader.upload().then(data => {
-      if (!alive()) return;
-      editor.model.change(writer => {
-        const marker = editor.model.markers.get(name);
-        if (!marker) return;
-        const start = marker.getStart();
-        const text = data?.filename || file.name;
-        writer.insertText(text, { linkHref: data.default }, start);
-        writer.insertText(' ', start.getShiftedBy(text.length));
-      });
+      if (alive()) editor.model.change(changeWriter => insertLink(changeWriter, name, data, file));
     }).catch(error => {
-      if (loader.status !== 'aborted') window.alert(error?.message || String(error));
+      if (alive() && loader.status !== 'aborted') window.alert(error?.message || String(error));
     }).finally(() => {
+      active.delete(loader);
       labels.delete(name);
-      if (alive() && editor.model.markers.has(name)) editor.model.change(writer => writer.removeMarker(name));
-      repository.destroyLoader(loader);
+      if (alive() && editor.model.markers.has(name)) editor.model.change(changeWriter => changeWriter.removeMarker(name));
+      repository().destroyLoader(loader);
     });
   }
 
   function uploadFiles(files, position) {
-    if (!enabled()) return;
+    if (!enabled() || editor.isReadOnly) return;
     const { images, documents } = partitionFiles(files);
-    if (!documents.length && !images.length) return;
-    if (position) editor.model.change(writer => writer.setSelection(position));
-    if (images.length && editor.commands.get('uploadImage')?.isEnabled) editor.execute('uploadImage', { file: images });
-    documents.forEach(file => uploadDocument(file, position));
+    const withImages = images.length > 0 && Boolean(editor.commands.get('uploadImage')?.isEnabled);
+    const queue = withImages ? documents : documents.concat(images);
+    if (!queue.length && !withImages) return;
+
+    editor.model.change(writer => {
+      if (position) writer.setSelection(position);
+      if (queue.length) {
+        const selection = editor.model.document.selection;
+        const at = textInsertionPosition(editor, writer, selection.getFirstPosition(), selection.getSelectedElement?.());
+        queue.forEach(file => uploadDocument(file, writer, at));
+      }
+      if (withImages) editor.execute('uploadImage', { file: images });
+    });
   }
 
   editor._redmineFileUpload = { uploadFiles };

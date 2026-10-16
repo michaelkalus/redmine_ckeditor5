@@ -74,7 +74,8 @@ module RedmineCkeditor
           allow: [{name: '$all', attributes: true, classes: true, styles: true}]
         },
         image: {
-          toolbar: %w[imageTextAlternative toggleImageCaption imageStyle:inline imageStyle:block imageStyle:side resizeImage]
+          toolbar: %w[imageTextAlternative toggleImageCaption imageStyle:inline imageStyle:block imageStyle:side resizeImage],
+          upload: {types: %w[jpeg png gif bmp webp tiff avif]}
         },
         table: {
           contentToolbar: %w[tableColumn tableRow mergeTableCells tableProperties tableCellProperties toggleTableCaption]

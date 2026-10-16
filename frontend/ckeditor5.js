@@ -132,6 +132,7 @@ function RedmineFileUploadButton(editor) {
   editor.ui.componentFactory.add('insertFile', locale => {
     const button = new ButtonView(locale);
     button.set({ label: editor.config.get('redmineUpload.insertFileLabel') || 'Insert file', icon: PAPERCLIP_ICON, tooltip: true });
+    button.bind('isEnabled').to(editor, 'isReadOnly', value => !value);
     button.on('execute', () => {
       const input = document.createElement('input');
       input.type = 'file';

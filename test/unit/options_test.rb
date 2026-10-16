@@ -27,4 +27,11 @@ class RedmineCkeditorOptionsTest < ActiveSupport::TestCase
     assert_equal '/u?kind=file', options[:redmineUpload][:fileUploadUrl]
     assert_equal({usersUrl: '/m'}, options[:redmineMentions])
   end
+
+  def test_image_upload_types_include_avif
+    options = RedmineCkeditor.options
+
+    assert_includes options[:image][:upload][:types], 'avif'
+    assert_includes options[:image][:toolbar], 'resizeImage'
+  end
 end
