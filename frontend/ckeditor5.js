@@ -6,6 +6,7 @@ import {
   AutoLink,
   BlockQuote,
   Bold,
+  ButtonView,
   Code,
   CodeBlock,
   Essentials,
@@ -56,19 +57,21 @@ import {
 } from 'ckeditor5';
 import { ClassicEditor } from 'ckeditor5';
 import { RedmineMentions, buildMentionFeeds } from './redmine_mentions.mjs';
+import { RedmineFileUpload } from './redmine_file_upload.mjs';
 import 'ckeditor5/ckeditor5.css';
 import csTranslations from 'ckeditor5/translations/cs.js';
 
 class RedmineUploadAdapter {
-  constructor(loader, editor) {
+  constructor(loader, editor, kind = 'image') {
     this.loader = loader;
     this.editor = editor;
+    this.kind = kind;
     this.controller = new AbortController();
   }
 
   async upload() {
     const file = await this.loader.file;
-    const uploadUrl = this.editor.config.get('redmineUpload.uploadUrl');
+    const uploadUrl = this.editor.config.get(this.kind === 'file' ? 'redmineUpload.fileUploadUrl' : 'redmineUpload.uploadUrl');
     const form = this.editor.sourceElement?.closest('form');
     const attachmentInput = form?.querySelector('.attachments_form input[type="file"][name^="attachments["]');
 
@@ -96,7 +99,7 @@ class RedmineUploadAdapter {
     }
 
     this.addAttachmentFields(form, payload);
-    return { default: payload.url };
+    return { default: payload.url, filename: payload.filename, id: payload.id };
   }
 
   abort() {
@@ -120,14 +123,31 @@ class RedmineUploadAdapter {
 }
 
 function RedmineUpload(editor) {
-  editor.plugins.get('FileRepository').createUploadAdapter = loader => new RedmineUploadAdapter(loader, editor);
+  editor.plugins.get('FileRepository').createUploadAdapter = loader => new RedmineUploadAdapter(loader, editor, editor._redmineUploadKind || 'image');
+}
+
+const PAPERCLIP_ICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M13.5 5.5v8a3.5 3.5 0 0 1-7 0v-9a2.25 2.25 0 0 1 4.5 0v8.5a1 1 0 0 1-2 0V5.5H7.75V13a2.25 2.25 0 0 0 4.5 0V4.5a3.75 3.75 0 0 0-7.5 0v9a5 5 0 0 0 10 0v-8z"/></svg>';
+
+function RedmineFileUploadButton(editor) {
+  editor.ui.componentFactory.add('insertFile', locale => {
+    const button = new ButtonView(locale);
+    button.set({ label: editor.config.get('redmineUpload.insertFileLabel') || 'Insert file', icon: PAPERCLIP_ICON, tooltip: true });
+    button.on('execute', () => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.multiple = true;
+      input.addEventListener('change', () => editor._redmineFileUpload?.uploadFiles(Array.from(input.files || [])));
+      input.click();
+    });
+    return button;
+  });
 }
 
 window.RedmineCKEditor5 = {
   ClassicEditor,
   RedmineUpload,
   buildMentionFeeds,
-  extraPlugins: [RedmineMentions],
+  extraPlugins: [RedmineMentions, RedmineFileUpload, RedmineFileUploadButton],
   translations: { cs: csTranslations },
   plugins: [
     AccessibilityHelp,

@@ -51,3 +51,13 @@
   color: var(--error-color, #b00020);
   margin-top: 0.5em;
 }
+
+.redmine-ckeditor-wrapper .redmine-file-upload-pending {
+  color: var(--ck-color-text, #666);
+  font-style: italic;
+  opacity: .7;
+}
+
+.redmine-mention-item {
+  white-space: nowrap;
+}

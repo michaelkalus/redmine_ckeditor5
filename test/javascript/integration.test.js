@@ -396,3 +396,10 @@ test('builds mention feeds and adds extra plugins', async () => {
   assert.ok(config.extraPlugins.includes(extra));
   assert.ok(config.extraPlugins.includes(environment.bundle.RedmineUpload));
 });
+
+test('hides insertFile without an attachments form', async () => {
+  const environment = loadIntegration({ attachmentInput: null });
+  environment.addTextarea('issue_notes');
+  await environment.integration.replace('issue_notes', { toolbar: { items: ['bold', 'uploadImage', 'insertFile'] } });
+  assert.deepEqual(environment.createdConfigs[0].toolbar.items, ['bold']);
+});
