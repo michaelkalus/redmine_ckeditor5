@@ -125,6 +125,7 @@ module RedmineCkeditor
       mentionable = Redmine::Acts::Mentionable::InstanceMethods
       mentionable.prepend(MentionablePatch) unless mentionable < MentionablePatch
       Journal.include(JournalBackrefHook) unless Journal < JournalBackrefHook
+      Journal.prepend(JournalWatcherPatch) unless Journal < JournalWatcherPatch
       Issue.include(IssueBackrefHook) unless Issue < IssueBackrefHook
     end
   end

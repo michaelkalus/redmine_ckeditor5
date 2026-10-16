@@ -78,6 +78,8 @@ class RedmineCkeditorIssueMentionBackrefTest < ActiveSupport::TestCase
 
   def test_skips_targets_the_actor_cannot_see_or_comment
     ckeditor do
+      add_note(Issue.find(1), '<p>#4</p>')
+      assert_equal 1, backrefs(4).size
       Issue.any_instance.stubs(:visible?).returns(false)
       add_note(Issue.find(1), '<p>#2</p>')
       Issue.any_instance.unstub(:visible?)
@@ -134,6 +136,8 @@ class RedmineCkeditorIssueMentionBackrefTest < ActiveSupport::TestCase
   end
 
   def test_disabled_setting_and_other_formats_do_nothing
+    ckeditor { add_note(Issue.find(1), '<p>#4</p>') }
+    assert_equal 1, backrefs(4).size
     with_settings(text_formatting: 'CKEditor', plugin_redmine_ckeditor: {'issue_mention_backref' => '0'}) do
       add_note(Issue.find(1), '<p>#2</p>')
     end
@@ -141,5 +145,43 @@ class RedmineCkeditorIssueMentionBackrefTest < ActiveSupport::TestCase
 
     assert_empty backrefs(2)
     assert_empty backrefs(3)
+  end
+
+  def test_backref_does_not_make_actor_a_watcher_but_normal_note_does
+    ckeditor do
+      user = User.find(2)
+      user.pref.auto_watch_on = %w[issue_contributed_to]
+      user.pref.save!
+      Role.find(1).add_permission!(:add_issue_watchers)
+      Watcher.where(watchable_type: 'Issue', watchable_id: [2, 3], user_id: 2).delete_all
+
+      add_note(Issue.find(3), '<p>plain</p>')
+      assert Issue.find(3).watched_by?(user), 'control: core auto-watch should apply to a normal note'
+
+      add_note(Issue.find(1), '<p>#2</p>')
+      assert_equal 1, backrefs(2).size
+      refute Issue.find(2).watched_by?(user)
+    end
+  end
+
+  def test_hook_failure_before_deliver_does_not_break_the_source_save
+    ckeditor do
+      Backref.stubs(:issue_ids).raises(RuntimeError, 'boom')
+
+      assert_nothing_raised { add_note(Issue.find(1), '<p>#2</p>') }
+      assert_empty backrefs(2)
+    end
+  end
+
+  def test_new_issue_description_creates_backref_by_author
+    ckeditor do
+      issue = Issue.new(project_id: 1, tracker_id: 1, author_id: 2, subject: 'new', description: '<p>#2</p>')
+      issue.save!
+
+      refs = backrefs(2)
+      assert_equal 1, refs.size
+      assert_equal User.find(2), refs.first.user
+      assert_includes refs.first.notes, %(data-ckeditor-backref="issue:#{issue.id}")
+    end
   end
 end

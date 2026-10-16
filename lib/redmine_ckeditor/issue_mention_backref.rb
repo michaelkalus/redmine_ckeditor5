@@ -26,7 +26,7 @@ module RedmineCkeditor
       return if issue.description.blank?
 
       ids = issue_ids(issue.description) - issue_ids(previous_description)
-      actor = issue.current_journal&.user || issue.author
+      actor = issue.current_journal&.user || (issue.previously_new_record? ? issue.author : nil)
       deliver(source: issue, actor: actor, ids: ids, key: "issue:#{issue.id}", href: "#{root}/issues/#{issue.id}")
     end
 
@@ -37,7 +37,9 @@ module RedmineCkeditor
         next unless target.visible?(actor) && target.notes_addable?(actor)
         next if target.journals.where("#{Journal.table_name}.notes LIKE ?", "%#{MARKER}=\"#{key}\"%").exists?
 
-        Journal.create!(journalized: target, user: actor, notes: note_html(source, key, href))
+        journal = Journal.new(journalized: target, user: actor, notes: note_html(source, key, href))
+        journal.redmine_ckeditor_backref_marker = true
+        journal.save!
       rescue StandardError => e
         Rails.logger.warn("redmine_ckeditor backref #{key} -> ##{target&.id}: #{e.class}: #{e.message}")
       end
