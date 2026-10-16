@@ -8,7 +8,9 @@ module RedmineCkeditor::WikiFormatting
       heads_for_wiki_formatter
       options = RedmineCkeditor.options(
         upload_url: redmine_ckeditor_uploads_path,
-        preview_url: preview_url
+        file_upload_url: (redmine_ckeditor_uploads_path(kind: 'file') if RedmineCkeditorSetting.file_uploads?),
+        preview_url: preview_url,
+        mentions: ckeditor_mention_sources
       )
       javascript_tag("RedmineCKEditor.replace(#{field_id.to_json}, #{options.to_json});")
     end
