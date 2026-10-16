@@ -80,6 +80,8 @@ class RedmineCkeditorSetting
 
     def flag?(key) = !%w[0 false].include?(setting.fetch(key, '1').to_s)
 
+    def toolbar_location = (%w[top bottom].include?(setting['toolbar_location'].to_s) ? setting['toolbar_location'].to_s : 'top')
+
     def width = setting['width'].presence
 
     def height = (setting['height'].to_i.then { |value| value.positive? ? value.clamp(120, 1200) : 400 })

@@ -31,6 +31,17 @@ class RedmineCkeditorSettingTest < ActiveSupport::TestCase
     assert_predicate RedmineCkeditorSetting, :group_toolbar_items?
   end
 
+  def test_keeps_legacy_toolbar_location_api_for_other_plugins
+    Setting.stubs(:[]).with(:plugin_redmine_ckeditor).returns('toolbar_location' => 'bottom')
+    assert_equal 'bottom', RedmineCkeditorSetting.toolbar_location
+
+    Setting.stubs(:[]).with(:plugin_redmine_ckeditor).returns({})
+    assert_equal 'top', RedmineCkeditorSetting.toolbar_location
+
+    Setting.stubs(:[]).with(:plugin_redmine_ckeditor).returns('toolbar_location' => '<x>')
+    assert_equal 'top', RedmineCkeditorSetting.toolbar_location
+  end
+
   def test_feature_flags_default_to_enabled
     Setting.stubs(:[]).with(:plugin_redmine_ckeditor).returns({})
 
