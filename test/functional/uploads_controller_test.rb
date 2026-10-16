@@ -37,4 +37,59 @@ class RedmineCkeditorUploadsControllerTest < Redmine::ControllerTest
     end
     assert_response :unprocessable_entity
   end
+
+  def test_file_kind_accepts_documents
+    upload = uploaded_test_file('testfile.txt', 'text/plain')
+    post :create, params: {upload: upload, kind: 'file'}
+
+    assert_response :created, response.body
+    attachment = Attachment.find(JSON.parse(response.body).fetch('id'))
+    assert_equal 'testfile.txt', attachment.filename
+    assert_nil attachment.container
+  ensure
+    attachment&.destroy
+  end
+
+  def test_file_kind_respects_denied_extensions
+    with_settings(attachment_extensions_denied: 'txt') do
+      assert_no_difference 'Attachment.count' do
+        post :create, params: {upload: uploaded_test_file('testfile.txt', 'text/plain'), kind: 'file'}
+      end
+    end
+    assert_response :unprocessable_entity
+    assert JSON.parse(response.body).fetch('error').present?
+  end
+
+  def test_file_kind_respects_max_size
+    with_settings(attachment_max_size: 0) do
+      post :create, params: {upload: uploaded_test_file('testfile.txt', 'text/plain'), kind: 'file'}
+    end
+    assert_response :unprocessable_entity
+  end
+
+  def test_file_kind_without_upload_is_rejected
+    post :create, params: {kind: 'file'}
+
+    assert_response :unprocessable_entity
+  end
+
+  def test_file_kind_disabled_is_not_found
+    with_settings(plugin_redmine_ckeditor: {'file_uploads' => '0'}) do
+      post :create, params: {upload: uploaded_test_file('testfile.txt', 'text/plain'), kind: 'file'}
+    end
+    assert_response :not_found
+  end
+
+  def test_image_kind_still_rejects_documents
+    post :create, params: {upload: uploaded_test_file('testfile.txt', 'text/plain')}
+
+    assert_response :unprocessable_entity
+  end
+
+  def test_anonymous_cannot_upload_files
+    @request.session[:user_id] = nil
+    assert_no_difference 'Attachment.count' do
+      post :create, params: {upload: uploaded_test_file('testfile.txt', 'text/plain'), kind: 'file'}
+    end
+  end
 end
