@@ -1,10 +1,6 @@
 require 'redmine'
 require_relative 'lib/redmine_ckeditor'
 
-ActiveSupport::Reloader.to_prepare do
-  RedmineCkeditor.apply_patch
-end
-
 Redmine::Plugin.register :redmine_ckeditor do
   name 'Redmine CKEditor plugin'
   author 'HicknHack Software GmbH'
@@ -19,3 +15,5 @@ Redmine::Plugin.register :redmine_ckeditor do
   wiki_format_provider 'CKEditor', RedmineCkeditor::WikiFormatting::Formatter,
     RedmineCkeditor::WikiFormatting::Helper
 end
+
+RedmineCkeditor.apply_patch

@@ -8,9 +8,13 @@ class RedmineCkeditorMentionablePatchTest < ActiveSupport::TestCase
            :enumerations, :workflows
 
   def setup
-    RedmineCkeditor.apply_patch
     User.current = nil
     ActionMailer::Base.deliveries.clear
+  end
+
+  def test_patches_are_applied_by_plugin_boot
+    assert Redmine::Acts::Mentionable::InstanceMethods < RedmineCkeditor::MentionablePatch
+    assert MailHandler < RedmineCkeditor::MailHandlerPatch
   end
 
   def scan(html) = Issue.new.send(:scan_for_mentioned_users, html)
