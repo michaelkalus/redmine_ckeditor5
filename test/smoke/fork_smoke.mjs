@@ -21,6 +21,11 @@ function env(name, fallback) {
 }
 
 const BASE = env('RM_URL').replace(/\/$/, '');
+const CONTAINER = env('RM_CONTAINER', '');
+if (!/^https?:\/\/[^/]+:8889$/.test(BASE) || CONTAINER === 'redmine-prod' || (CONTAINER && CONTAINER !== 'redmine-test')) {
+  console.error('refusing to run: RM_URL must be the TEST instance (:8889) and RM_CONTAINER, if set, must be redmine-test');
+  process.exit(2);
+}
 const PW = fs.readFileSync(env('RM_PASSWORD_FILE'), 'utf8').trim();
 const KEY = fs.readFileSync(env('RM_API_KEY_FILE'), 'utf8').trim();
 const EDITOR = env('RM_EDITOR_USER');
@@ -30,7 +35,6 @@ const PROJECT = env('RM_PROJECT', 'smoke');
 const LEGACY = env('RM_LEGACY_ISSUES', '').split(',').map(s => s.trim()).filter(Boolean);
 const SHOTS = env('RM_SHOTS', path.resolve('smoke-shots'));
 const SSH = env('RM_SSH_HOST', '');
-const CONTAINER = env('RM_CONTAINER', '');
 fs.mkdirSync(SHOTS, { recursive: true });
 
 const MENTIONED_IN = 'Zm\u00edn\u011bno v';
@@ -64,12 +68,20 @@ async function createIssue(subject) {
   return r.json.issue.id;
 }
 
+class Unverified extends Error {}
+
 function runner(code) {
-  if (!SSH || !CONTAINER) return null;
-  const out = execFileSync('ssh', [SSH, 'docker exec -i ' + CONTAINER + " bash -lc 'cd /usr/src/redmine && bin/rails runner -e production -'"],
-    { input: code, encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] });
+  if (!SSH || !CONTAINER) throw new Unverified('no notification evidence: RM_SSH_HOST/RM_CONTAINER not set');
+  let out;
+  try {
+    out = execFileSync('ssh', [SSH, 'docker exec -i ' + CONTAINER + " bash -lc 'cd /usr/src/redmine && bin/rails runner -e production -'"],
+      { input: code, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] });
+  } catch (e) {
+    throw new Unverified('rails runner failed: ' + String(e.stderr || e.message).trim().split('\n').slice(-5).join(' | '));
+  }
   const line = out.split('\n').find(l => l.startsWith('RESULT '));
-  return line ? JSON.parse(line.slice(7)) : null;
+  if (!line) throw new Unverified('rails runner returned no RESULT line: ' + out.trim().split('\n').slice(-3).join(' | '));
+  return JSON.parse(line.slice(7));
 }
 
 function mentionEvidence(journalId) {
@@ -83,11 +95,15 @@ async function shot(page, name) {
 }
 
 async function check(page, name, fn) {
-  const rec = { name, ok: true, info: '' };
-  try { rec.info = (await fn()) || ''; } catch (e) { rec.ok = false; rec.info = String(e.message || e); }
+  const rec = { name, ok: true, status: 'PASS', info: '' };
+  try { rec.info = (await fn()) || ''; } catch (e) {
+    rec.ok = false;
+    rec.status = e instanceof Unverified ? 'UNVERIFIED' : 'FAIL';
+    rec.info = String(e.message || e);
+  }
   rec.shot = await shot(page, name);
   results.push(rec);
-  console.log((rec.ok ? 'PASS ' : 'FAIL ') + name + (rec.info ? ' :: ' + rec.info : ''));
+  console.log(rec.status + ' ' + name + (rec.info ? ' :: ' + rec.info : ''));
 }
 
 async function login(page, user) {
@@ -141,6 +157,11 @@ async function pickMention(page, el, typed, needle) {
   await item.waitFor({ timeout: 10000 });
   await item.click();
   await sleep(200);
+}
+
+async function listedAttachments(page, filename) {
+  const names = await page.locator('div.attachments a.icon-attachment').allTextContents();
+  return names.filter(t => t.trim() === filename).length;
 }
 
 async function lastJournalId(id) {
@@ -197,7 +218,7 @@ const PDF_TEXT = '%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<
   await login(page, EDITOR);
 
   let noteJournal = null;
-  await check(page, '1 user mention @ dropdown + a.user-mention', async () => {
+  await check(page, '1 user mention @ dropdown selects target into editor', async () => {
     const el = await openEdit(page, src);
     await page.keyboard.type('Hi ', { delay: 30 });
     await pickMention(page, el, '@' + TARGET.slice(0, 2), '@' + TARGET);
@@ -207,7 +228,7 @@ const PDF_TEXT = '%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<
     return 'editor data ok';
   });
 
-  await check(page, '2 issue mention # + backref on target', async () => {
+  await check(page, '2 issue mention # + saved a.user-mention + backref on target + mention notification', async () => {
     const el = await notesEditable(page);
     await el.focus();
     await page.keyboard.press('End');
@@ -232,11 +253,9 @@ const PDF_TEXT = '%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<
     facts.backrefJournal = last.id;
     facts.targetNoteCountAfterMention = tj.length;
     const ev = mentionEvidence(noteJournal);
-    if (ev) {
-      facts.noteMentions = ev;
-      assert(ev.notified.includes(TARGET), 'source note does not notify ' + TARGET + ': ' + JSON.stringify(ev));
-    }
-    return 'a.user-mention "' + linkText + '"; backref journal ' + last.id + (ev ? '; notified_mentions=' + JSON.stringify(ev.notified) : '');
+    facts.noteMentions = ev;
+    assert(ev.notified.includes(TARGET), 'source note does not notify ' + TARGET + ': ' + JSON.stringify(ev));
+    return 'a.user-mention "' + linkText + '"; backref journal ' + last.id + '; notified_mentions=' + JSON.stringify(ev.notified);
   });
 
   await check(page, '3 quote: no new backref, no mention notification', async () => {
@@ -261,11 +280,9 @@ const PDF_TEXT = '%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<
     const tj = (await issue(tgt, 'journals')).journals.filter(j => j.notes);
     assert(tj.length === facts.targetNoteCountAfterMention, 'target note count changed ' + facts.targetNoteCountAfterMention + ' -> ' + tj.length);
     const ev = mentionEvidence(qj);
-    if (ev) {
-      facts.quoteMentions = ev;
-      assert(ev.notified.length === 0, 'quote notifies mentions: ' + JSON.stringify(ev));
-    }
-    return 'quote journal ' + qj + '; target notes stay ' + tj.length + (ev ? '; quote notified_mentions=' + JSON.stringify(ev.notified) : '');
+    facts.quoteMentions = ev;
+    assert(ev.notified.length === 0, 'quote notifies mentions: ' + JSON.stringify(ev));
+    return 'quote journal ' + qj + '; target notes stay ' + tj.length + '; quote notified_mentions=' + JSON.stringify(ev.notified);
   });
 
   await check(page, '4 paste PNG -> img + attachment', async () => {
@@ -277,9 +294,9 @@ const PDF_TEXT = '%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<
     await submit(page);
     const atts = (await issue(src, 'attachments')).attachments;
     assert(atts.length === before + 1, 'attachments ' + before + ' -> ' + atts.length);
-    assert(await page.locator('.attachments a, .attachments-list a').filter({ hasText: atts[atts.length - 1].filename }).count() > 0
-      || await page.locator('text=' + atts[atts.length - 1].filename).count() > 0, 'attachment not listed on page');
-    return 'attachment ' + atts[atts.length - 1].filename;
+    const name = atts[atts.length - 1].filename;
+    assert(await listedAttachments(page, name) > 0, 'attachment ' + name + ' not in div.attachments');
+    return 'attachment ' + name + ' listed';
   });
 
   await check(page, '5 drop PDF + PNG -> link + img, two attachments', async () => {
@@ -296,7 +313,10 @@ const PDF_TEXT = '%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<
     await submit(page);
     const atts = (await issue(src, 'attachments')).attachments;
     assert(atts.length === before + 2, 'attachments ' + before + ' -> ' + atts.length);
-    return 'attachments ' + before + ' -> ' + atts.length;
+    for (const name of ['smoke-drop.pdf', 'smoke-drop.png']) {
+      assert(await listedAttachments(page, name) > 0, 'attachment ' + name + ' not in div.attachments');
+    }
+    return 'attachments ' + before + ' -> ' + atts.length + '; both listed';
   });
 
   await check(page, '6 paperclip button with Czech tooltip', async () => {
@@ -320,8 +340,6 @@ const PDF_TEXT = '%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<
     await login(page, ADMIN);
     for (const id of LEGACY) {
       await check(page, '7 legacy issue #' + id + ' renders, /system/rich/ image 200', async () => {
-        const imgs = [];
-        page.on('response', r => { if (r.url().includes('/system/rich/')) imgs.push([r.url(), r.status()]); });
         const resp = await page.goto(BASE + '/issues/' + id);
         assert(resp.status() === 200, 'issue page ' + resp.status());
         await page.waitForLoadState('networkidle');
@@ -343,6 +361,8 @@ const PDF_TEXT = '%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<
   const failed = results.filter(r => !r.ok).length;
   console.log('FACTS ' + JSON.stringify(facts));
   if (consoleErrors.length) console.log('PAGE ERRORS ' + JSON.stringify(consoleErrors.slice(0, 10)));
-  console.log((failed ? 'FAILED ' : 'ALL PASS ') + (results.length - failed) + '/' + results.length);
+  const unverified = results.filter(r => r.status === 'UNVERIFIED').length;
+  console.log((failed ? 'NOT PASSED ' : 'ALL PASS ') + (results.length - failed) + '/' + results.length +
+    (failed ? ' (FAIL ' + (failed - unverified) + ', UNVERIFIED ' + unverified + ')' : ''));
   process.exit(failed ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(3); });
