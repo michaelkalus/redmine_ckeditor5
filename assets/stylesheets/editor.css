@@ -67,6 +67,12 @@
   flex-direction: column-reverse;
 }
 
+/* The flex rule above beats the UA [hidden] style; preview hides the editor
+ * with the hidden attribute. */
+.redmine-ckeditor-wrapper[hidden] {
+  display: none;
+}
+
 .redmine-ckeditor-wrapper.redmine-ckeditor-toolbar-bottom .ck-sticky-panel__placeholder {
   display: none !important;
 }
