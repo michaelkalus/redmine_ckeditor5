@@ -65,4 +65,13 @@ class RedmineCkeditorLegacyMigrationTest < ActiveSupport::TestCase
       RedmineCkeditor::LegacyMigration.any_instance.expects(:up).once.returns(result)
     end
   end
+
+  def test_plugin_tables_guard_reflects_table_presence
+    migration = RedmineCkeditor::LegacyMigration.new
+    assert migration.plugin_tables?
+
+    ActiveRecord::Base.connection.stubs(:data_source_exists?).returns(false)
+    assert_not migration.plugin_tables?
+    assert_not migration.legacy_table?
+  end
 end

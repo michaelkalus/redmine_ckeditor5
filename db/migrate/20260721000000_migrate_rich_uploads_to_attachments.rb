@@ -33,9 +33,9 @@ class MigrateRichUploadsToAttachments < ActiveRecord::Migration[7.2]
       say "Rich migration: #{result.migrated} uploads migrated, #{result.skipped} already migrated, " \
           "#{result.failed} failed, #{result.rewritten} content records rewritten"
     else
-      say 'Rich conversion skipped (opt-in). Run it later with ' \
-          'REDMINE_CKEDITOR_MIGRATE_RICH=1 bin/rails redmine:plugins:migrate NAME=redmine_ckeditor ' \
-          'or: bin/rails redmine_ckeditor:migrate_legacy RAILS_ENV=production'
+      say 'Rich conversion skipped (opt-in). The env flag applies only to the first plugin ' \
+          'migrate (REDMINE_CKEDITOR_MIGRATE_RICH=1 bin/rails redmine:plugins:migrate NAME=redmine_ckeditor).'
+      say 'To convert later run: bin/rails redmine_ckeditor:migrate_legacy RAILS_ENV=production'
     end
   end
 

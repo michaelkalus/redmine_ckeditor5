@@ -3,7 +3,16 @@
 namespace :redmine_ckeditor do
   desc 'Run (opt-in) or retry and report migration of legacy Rich uploads/content'
   task migrate_legacy: :environment do
-    result = RedmineCkeditor::LegacyMigration.new.retry_failed
+    migration = RedmineCkeditor::LegacyMigration.new
+    unless migration.plugin_tables?
+      abort 'Plugin tables are missing - run bin/rails redmine:plugins:migrate NAME=redmine_ckeditor first.'
+    end
+    unless migration.legacy_table?
+      puts 'No legacy Rich table found - nothing to convert.'
+      next
+    end
+
+    result = migration.retry_failed
     puts "Migrated: #{result.migrated}"
     puts "Already migrated: #{result.skipped}"
     puts "Failed: #{result.failed}"

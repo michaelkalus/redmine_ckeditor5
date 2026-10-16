@@ -67,11 +67,16 @@ module RedmineCkeditor
       up
     end
 
-    private
-
     def legacy_table?
       ActiveRecord::Base.connection.data_source_exists?(LegacyFile.table_name)
     end
+
+    def plugin_tables?
+      connection = ActiveRecord::Base.connection
+      [FileMigration, ContentBackup].all? { |model| connection.data_source_exists?(model.table_name) }
+    end
+
+    private
 
     def reset_models
       [LegacyFile, FileMigration, ContentBackup].each(&:reset_column_information)
