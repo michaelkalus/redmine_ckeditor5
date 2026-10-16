@@ -7,47 +7,115 @@ This plugin is a new implementation by HicknHack Software GmbH, inspired by
 Akihiro Ono's [original Redmine CKEditor plugin](https://github.com/a-ono/redmine_ckeditor).
 It shares no code with the previous plugin.
 
-## Fork additions
+## Fork changes
 
 This fork (`michaelkalus/redmine_ckeditor5`, version `2.0.1-fork.1`) keeps the
-plugin id `redmine_ckeditor` and adds the following on top of upstream.
+plugin id `redmine_ckeditor` and the formatter name `CKEditor`, so it replaces
+the upstream plugin (or the older CKEditor 4 plugin) in place and existing
+content keeps working.
 
-- **Czech UI.** Editor language `cs`, localized headings and a Czech plugin
-  locale (`config/locales/cs.yml`).
-- **Mentions.** `@login` and `#id` mentions are stored as plain text, so
-  Redmine core detects them and sends its normal notifications. This is done
-  by overriding the CKEditor `mention` command (not by a downcast converter),
-  so the editor inserts the plain text instead of a mention element.
-  - The `@` suggestions endpoint `/redmine_ckeditor/mentions/users` needs only
-    `view_issues` (not `add_issue_watchers`). It matches login, first name and
-    last name only (never e-mail) and returns only active, visible project
-    members who can see the issue (or who have `view_issues` in the project when no issue
-    exists yet).
-  - Quotes (`blockquote`), `pre` and `code` are not scanned for mentions.
-- **Backref note.** When an issue is mentioned as `#N`, a note "Mentioned in #N"
-  (the localized "Mentioned in" text, see the cs locale) is added to issue N. It is skipped for private issues
-  and private notes, requires that the target is visible and that the author of
-  the source has `add_issue_notes` on it, and is created once per source record
-  (`journal:<id>` or `issue:<id>`). The author is not subscribed as a watcher
-  of the target. Failures are logged and never break the save.
-- **Document uploads.** The paperclip toolbar button, paste and drop upload
-  files as unattached attachments (`POST /redmine_ckeditor/uploads?kind=file`).
-  Redmine's attachment size and extension settings apply. A hidden token binds
-  the attachments to the record on save. Remove orphans with
+### Changes compared to upstream
+
+**Editor**
+
+- **Czech UI.** The editor language is `cs` when the Redmine user language is
+  Czech (`en` otherwise). Heading names are localized and the plugin has a Czech
+  locale (`config/locales/cs.yml`). Only the Czech CKEditor translation is
+  bundled.
+- **Mentions stored as plain text.** Selecting an `@` or `#` suggestion inserts
+  plain `@login` / `#123` text. This is done by overriding the CKEditor
+  `mention` command (not by a downcast converter), so no mention element or
+  `data-*` attribute is stored. Redmine core renders the text as a link
+  (`@login` shows the user's name, `#123` the issue).
+- **Document uploads.** A paperclip toolbar button (`insertFile`), paste and
+  drag and drop upload any file as an unattached attachment and insert a link
+  to it. Images keep using the upstream image upload; a mixed drop of images
+  and documents uploads both. The button is disabled in read-only and source
+  editing mode, and hidden in forms without attachments. Uploads still in
+  progress are aborted when the editor is destroyed.
+- **AVIF images** are accepted by the image upload (`image.upload.types`).
+
+**Server**
+
+- **`@` suggestions endpoint** `GET /redmine_ckeditor/mentions/users`. It
+  needs only `view_issues` (not `add_issue_watchers`, which the core endpoint
+  requires). It matches login, first name and last name only (never e-mail)
+  and returns `login` and `name` of active, visible project members who can see
+  the issue (or who have `view_issues` in the project when no issue exists yet).
+- **`#` suggestions** use Redmine's own `/issues/auto_complete` (visible issues
+  of all projects).
+- **HTML-aware mention scanning.** Redmine core looks for `@login` in the raw
+  text. For the CKEditor format the plugin first reduces the HTML to its
+  visible text without `blockquote`, `pre` and `code`, so quoting a reply or a
+  code sample does not notify anyone again.
+- **Backref note.** When an issue is mentioned as `#N` in a note or a
+  description, a note "Mentioned in #SRC" is added to issue N, linking to the
+  source note. Rules:
+  - skipped for private issues and private notes, for the issue itself and for
+    issues the author cannot see or comment on (`add_issue_notes`);
+  - one note per source record (`journal:<id>` or `issue:<id>`); for a changed
+    description only newly added ids count;
+  - at most 20 target issues per save;
+  - the author of the source is the author of the note, and is not subscribed
+    as a watcher of the target;
+  - the note contains no subject or text of the source; failures are logged
+    and never break the save.
+- **`kind=file` uploads** on `POST /redmine_ckeditor/uploads`. Redmine's
+  attachment size and extension settings and the attachments upload permission
+  apply. Unattached files can be removed with
   `bundle exec rake redmine:attachments:prune`.
-- **Settings.** Four flags, all enabled by default: `user_mentions`,
-  `issue_mentions`, `issue_mention_backref` and `file_uploads`. With
-  `file_uploads` on, `insertFile` is added to stored toolbars automatically.
-- **Legacy Rich conversion is opt-in.** The plugin migration only creates its
-  tables. To convert during the first migrate, set
-  `REDMINE_CKEDITOR_MIGRATE_RICH=1 bin/rails redmine:plugins:migrate NAME=redmine_ckeditor`.
-  That flag works only once: after a skipped migrate the version is recorded,
-  so later run `bin/rails redmine_ckeditor:migrate_legacy RAILS_ENV=production`.
-  Ownerless Rich files would become author-only attachments, invisible to
-  normal users.
+- **Toolbar.** With document uploads on, `insertFile` is added after
+  `uploadImage` to stored toolbars (also those converted from CKEditor 4).
+- **Rich conversion is opt-in** (see [Rich migration](#rich-migration)).
+- **Compatibility shim.** `RedmineCkeditorSetting.toolbar_location` is back
+  (`top` / `bottom`) because other plugins (for example
+  `redmine_issue_dynamic_edit`) still call it.
 - **Init fix (note for upstream).** `init.rb` calls `RedmineCkeditor.apply_patch`
   directly. Redmine 6.1 runs plugin `init.rb` inside a `to_prepare` callback,
-  so a nested `to_prepare` registered there never runs.
+  so a nested `to_prepare` registered there never runs and the patches were
+  never applied in production.
+
+**Development**
+
+- CI also runs `bin/rails zeitwerk:check` in the production environment.
+- `test/smoke/fork_smoke.mjs` is a Playwright smoke test against a TEST
+  Redmine (not run by CI; see the header of the file for its environment
+  variables).
+
+### Where things are configured
+
+| What | Where |
+|---|---|
+| Turn `@` user mentions on/off | Administration > Plugins > Redmine CKEditor plugin > Configure: "@user mentions" (`user_mentions`, default on) |
+| Turn `#` issue mentions on/off | same page: "#issue mentions" (`issue_mentions`, default on) |
+| Turn the backref note on/off | same page: "Add a note to mentioned issues" (`issue_mention_backref`, default on) |
+| Turn document uploads on/off | same page: "Insert documents as attachments" (`file_uploads`, default on) |
+| Toolbar, height, width, UI color | same page (upstream settings) |
+| Who gets mention e-mails, which events send mail | Redmine core: each user's e-mail notification preference and Administration > Settings > Email notifications |
+| Upload size and allowed/denied extensions | Redmine core: Administration > Settings > Files |
+| Text of the backref note ("Mentioned in") | locale key `ckeditor_issue_mentioned_in` in `config/locales/en.yml` / `cs.yml` (uses Redmine's default language) |
+| Editor options, sanitizer allowlists | `REDMINE_ROOT/config/ckeditor.yml` (upstream, see [Configuration](#configuration)) |
+| Rich conversion | `REDMINE_CKEDITOR_MIGRATE_RICH=1` on the first plugin migrate, later `bin/rails redmine_ckeditor:migrate_legacy` |
+
+Settings keys `user_mentions` and `issue_mentions` match the keys used by the
+previous CKEditor 4 plugin, so a stored value carries over. Its other
+mention settings (trigger character, minimum characters, result count, display
+format, avatars, project-only, notify-on, mail templates and highlight style)
+are not used.
+
+### Fixed in code
+
+| Behavior | Value | File |
+|---|---|---|
+| Mention triggers | `@` (users), `#` (issues) | `frontend/redmine_mentions.mjs` |
+| Characters before suggestions appear | 1 | `frontend/redmine_mentions.mjs` |
+| Inserted text | `@login`, `#id` | `frontend/redmine_mentions.mjs` |
+| Number of `@` suggestions | 10 | `app/controllers/redmine_ckeditor_mentions_controller.rb` (`LIMIT`) |
+| `@` search fields | login, first name, last name | same file |
+| `@` query limits | 100 characters, 5 words | same file (`MAX_QUERY`, `MAX_TOKENS`) |
+| Backref targets per save | 20 | `lib/redmine_ckeditor/issue_mention_backref.rb` (`MAX_TARGETS`) |
+| Elements not scanned for mentions | `blockquote`, `pre`, `code`, `script`, `style` | `lib/redmine_ckeditor/html_mention_text.rb` |
+| Editor UI languages | `cs`, `en` | `lib/redmine_ckeditor.rb` (`editor_language`), `frontend/ckeditor5.js` |
 
 ### Syncing with upstream
 
@@ -94,9 +162,13 @@ Do not copy assets manually into `public/plugin_assets`. Redmine 6.1 and 7
 discover the plugin's `assets/` tree through Propshaft and fingerprint it during
 precompile.
 
-## Automatic Rich migration
+## Rich migration
 
-The first 2.0 migration automatically:
+In this fork the conversion is opt-in: the first plugin migration only creates
+its tables unless `REDMINE_CKEDITOR_MIGRATE_RICH=1` is set; later run
+`bin/rails redmine_ckeditor:migrate_legacy RAILS_ENV=production`. Rich files
+without an owner become attachments visible only to their author, so check the
+legacy data before converting. The conversion:
 
 1. Finds every row in the legacy `rich_rich_files` table.
 2. Recognizes the original Rich and `cw_rich` Paperclip directory/URL layouts.
