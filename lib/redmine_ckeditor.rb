@@ -124,6 +124,8 @@ module RedmineCkeditor
       QueriesHelper.prepend(QueriesHelperPatch) unless QueriesHelper < QueriesHelperPatch
       mentionable = Redmine::Acts::Mentionable::InstanceMethods
       mentionable.prepend(MentionablePatch) unless mentionable < MentionablePatch
+      Journal.include(JournalBackrefHook) unless Journal < JournalBackrefHook
+      Issue.include(IssueBackrefHook) unless Issue < IssueBackrefHook
     end
   end
 end
@@ -137,3 +139,5 @@ require_relative 'redmine_ckeditor/mail_handler_patch'
 require_relative 'redmine_ckeditor/legacy_migration'
 require_relative 'redmine_ckeditor/html_mention_text'
 require_relative 'redmine_ckeditor/mentionable_patch'
+require_relative 'redmine_ckeditor/issue_mention_backref'
+require_relative 'redmine_ckeditor/backref_hooks'
