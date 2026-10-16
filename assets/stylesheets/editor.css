@@ -79,9 +79,14 @@
   box-shadow: none;
 }
 
-.redmine-ckeditor-wrapper.redmine-ckeditor-toolbar-bottom .ck-editor__top .ck-sticky-panel .ck-toolbar {
+.redmine-ckeditor-wrapper.redmine-ckeditor-toolbar-bottom .ck-editor__top .ck-sticky-panel .ck-sticky-panel__content {
   border-top-width: 0;
   border-bottom-width: 1px;
+  border-bottom-style: solid;
+  border-radius: 0 0 var(--ck-border-radius) var(--ck-border-radius);
+}
+
+.redmine-ckeditor-wrapper.redmine-ckeditor-toolbar-bottom .ck-editor__top .ck-sticky-panel .ck-toolbar {
   border-radius: 0 0 var(--ck-border-radius) var(--ck-border-radius);
 }
 
