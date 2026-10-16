@@ -70,9 +70,9 @@ class RedmineCkeditorSetting
       end.tap { |out| out.pop if out.last == '|' }
     end
 
-    def user_mentions? = flag?('user_mentions')
+    def mention_users? = flag?('mention_users')
 
-    def issue_mentions? = flag?('issue_mentions')
+    def mention_issues? = flag?('mention_issues')
 
     def issue_mention_backref? = flag?('issue_mention_backref')
 

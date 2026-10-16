@@ -80,7 +80,7 @@ class RedmineCkeditorMentionsControllerTest < Redmine::ControllerTest
   end
 
   def test_disabled_setting_is_not_found
-    with_settings(plugin_redmine_ckeditor: {'user_mentions' => '0'}) do
+    with_settings(plugin_redmine_ckeditor: {'mention_users' => '0'}) do
       get :users, params: {project_id: 1, q: 'j'}
     end
 

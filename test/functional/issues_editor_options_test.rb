@@ -33,8 +33,8 @@ class RedmineCkeditorIssuesEditorOptionsTest < Redmine::ControllerTest
     response.body[/redmineMentions":(\{[^}]*\})/, 1].to_s
   end
 
-  def test_issue_mentions_disabled_omits_issues_url
-    with_settings(text_formatting: 'CKEditor', plugin_redmine_ckeditor: {'issue_mentions' => '0'}) do
+  def test_mention_issues_disabled_omits_issues_url
+    with_settings(text_formatting: 'CKEditor', plugin_redmine_ckeditor: {'mention_issues' => '0'}) do
       get :show, params: {id: 1}
     end
 
@@ -43,8 +43,8 @@ class RedmineCkeditorIssuesEditorOptionsTest < Redmine::ControllerTest
     assert_not_includes mentions_config, 'issues/auto_complete'
   end
 
-  def test_user_mentions_disabled_omits_users_url
-    with_settings(text_formatting: 'CKEditor', plugin_redmine_ckeditor: {'user_mentions' => '0'}) do
+  def test_mention_users_disabled_omits_users_url
+    with_settings(text_formatting: 'CKEditor', plugin_redmine_ckeditor: {'mention_users' => '0'}) do
       get :show, params: {id: 1}
     end
 

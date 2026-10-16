@@ -12,11 +12,11 @@ module RedmineCkeditor
       return {} unless project.is_a?(Project) && project.persisted?
 
       sources = {}
-      if RedmineCkeditorSetting.user_mentions?
+      if RedmineCkeditorSetting.mention_users?
         issue_id = @issue.id if @issue.is_a?(Issue) && @issue.persisted?
         sources[:usersUrl] = redmine_ckeditor_mention_users_path(project_id: project.id, issue_id: issue_id)
       end
-      if RedmineCkeditorSetting.issue_mentions?
+      if RedmineCkeditorSetting.mention_issues?
         sources[:issuesUrl] = auto_complete_issues_path(project_id: project.id, scope: 'all')
       end
       sources

@@ -45,19 +45,19 @@ class RedmineCkeditorSettingTest < ActiveSupport::TestCase
   def test_feature_flags_default_to_enabled
     Setting.stubs(:[]).with(:plugin_redmine_ckeditor).returns({})
 
-    assert_predicate RedmineCkeditorSetting, :user_mentions?
-    assert_predicate RedmineCkeditorSetting, :issue_mentions?
+    assert_predicate RedmineCkeditorSetting, :mention_users?
+    assert_predicate RedmineCkeditorSetting, :mention_issues?
     assert_predicate RedmineCkeditorSetting, :issue_mention_backref?
     assert_predicate RedmineCkeditorSetting, :file_uploads?
   end
 
   def test_feature_flags_can_be_disabled
     Setting.stubs(:[]).with(:plugin_redmine_ckeditor).returns(
-      'user_mentions' => '0', 'issue_mentions' => '0', 'issue_mention_backref' => '0', 'file_uploads' => '0'
+      'mention_users' => '0', 'mention_issues' => '0', 'issue_mention_backref' => '0', 'file_uploads' => '0'
     )
 
-    refute_predicate RedmineCkeditorSetting, :user_mentions?
-    refute_predicate RedmineCkeditorSetting, :issue_mentions?
+    refute_predicate RedmineCkeditorSetting, :mention_users?
+    refute_predicate RedmineCkeditorSetting, :mention_issues?
     refute_predicate RedmineCkeditorSetting, :issue_mention_backref?
     refute_predicate RedmineCkeditorSetting, :file_uploads?
   end
@@ -94,5 +94,12 @@ class RedmineCkeditorSettingTest < ActiveSupport::TestCase
     assert_equal 1, RedmineCkeditorSetting.toolbar.count('insertFile')
     assert_equal RedmineCkeditorSetting.toolbar.index('uploadImage') + 1,
                  RedmineCkeditorSetting.toolbar.index('insertFile')
+  end
+
+  def test_previous_plugin_keys_are_ignored
+    Setting.stubs(:[]).with(:plugin_redmine_ckeditor).returns('user_mentions' => '0', 'issue_mentions' => '0')
+
+    assert_predicate RedmineCkeditorSetting, :mention_users?
+    assert_predicate RedmineCkeditorSetting, :mention_issues?
   end
 end

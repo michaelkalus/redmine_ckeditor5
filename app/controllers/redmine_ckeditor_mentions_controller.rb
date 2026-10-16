@@ -18,7 +18,7 @@ class RedmineCkeditorMentionsController < ApplicationController
   private
 
   def ensure_enabled
-    render_404 unless RedmineCkeditorSetting.user_mentions?
+    render_404 unless RedmineCkeditorSetting.mention_users?
   end
 
   def find_context

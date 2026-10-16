@@ -86,8 +86,8 @@ content keeps working.
 
 | What | Where |
 |---|---|
-| Turn `@` user mentions on/off | Administration > Plugins > Redmine CKEditor plugin > Configure: "@user mentions" (`user_mentions`, default on) |
-| Turn `#` issue mentions on/off | same page: "#issue mentions" (`issue_mentions`, default on) |
+| Turn `@` user mentions on/off | Administration > Plugins > Redmine CKEditor plugin > Configure: "@user mentions" (`mention_users`, default on) |
+| Turn `#` issue mentions on/off | same page: "#issue mentions" (`mention_issues`, default on) |
 | Turn the backref note on/off | same page: "Add a note to mentioned issues" (`issue_mention_backref`, default on) |
 | Turn document uploads on/off | same page: "Insert documents as attachments" (`file_uploads`, default on) |
 | Toolbar, height, width, UI color | same page (upstream settings) |
@@ -97,11 +97,10 @@ content keeps working.
 | Editor options, sanitizer allowlists | `REDMINE_ROOT/config/ckeditor.yml` (upstream, see [Configuration](#configuration)) |
 | Rich conversion | `REDMINE_CKEDITOR_MIGRATE_RICH=1` on the first plugin migrate, later `bin/rails redmine_ckeditor:migrate_legacy` |
 
-Settings keys `user_mentions` and `issue_mentions` match the keys used by the
-previous CKEditor 4 plugin, so a stored value carries over. Its other
-mention settings (trigger character, minimum characters, result count, display
-format, avatars, project-only, notify-on, mail templates and highlight style)
-are not used.
+Settings of the previous CKEditor 4 plugin (trigger character, minimum
+characters, result count, display format, avatars, project-only, notify-on,
+mail templates and highlight style) are not read; the mention flags use their
+own keys and default to on.
 
 ### Fixed in code
 

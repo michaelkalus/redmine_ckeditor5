@@ -17,7 +17,7 @@ cs:
   ckeditor_uploading: Nahrávám
   ckeditor_insert_file: Vložit soubor
   ckeditor_upload_missing: Nebyl nahrán žádný soubor.
-  ckeditor_user_mentions: "@zmínky uživatelů"
-  ckeditor_issue_mentions: "#zmínky úkolů"
+  ckeditor_mention_users: "@zmínky uživatelů"
+  ckeditor_mention_issues: "#zmínky úkolů"
   ckeditor_issue_mention_backref: Zapsat poznámku do zmíněného úkolu
   ckeditor_file_uploads: Vkládat dokumenty jako přílohy

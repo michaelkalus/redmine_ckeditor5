@@ -17,7 +17,7 @@ en:
   ckeditor_uploading: Uploading
   ckeditor_insert_file: Insert file
   ckeditor_upload_missing: No file was uploaded.
-  ckeditor_user_mentions: "@user mentions"
-  ckeditor_issue_mentions: "#issue mentions"
+  ckeditor_mention_users: "@user mentions"
+  ckeditor_mention_issues: "#issue mentions"
   ckeditor_issue_mention_backref: Add a note to mentioned issues
   ckeditor_file_uploads: Insert documents as attachments
