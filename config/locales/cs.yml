@@ -21,3 +21,6 @@ cs:
   ckeditor_mention_issues: "#zmínky úkolů"
   ckeditor_issue_mention_backref: Zapsat poznámku do zmíněného úkolu
   ckeditor_file_uploads: Vkládat dokumenty jako přílohy
+  ckeditor_toolbar_location: Umístění panelu nástrojů
+  ckeditor_toolbar_location_top: Nahoře
+  ckeditor_toolbar_location_bottom: Dole

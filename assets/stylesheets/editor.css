@@ -61,3 +61,30 @@
 .redmine-mention-item {
   white-space: nowrap;
 }
+
+.redmine-ckeditor-wrapper.redmine-ckeditor-toolbar-bottom {
+  display: flex;
+  flex-direction: column-reverse;
+}
+
+.redmine-ckeditor-wrapper.redmine-ckeditor-toolbar-bottom .ck-sticky-panel__placeholder {
+  display: none !important;
+}
+
+.redmine-ckeditor-wrapper.redmine-ckeditor-toolbar-bottom .ck-sticky-panel .ck-sticky-panel__content_sticky {
+  position: static;
+  top: auto;
+  width: auto !important;
+  margin-left: 0 !important;
+  box-shadow: none;
+}
+
+.redmine-ckeditor-wrapper.redmine-ckeditor-toolbar-bottom .ck-editor__top .ck-sticky-panel .ck-toolbar {
+  border-top-width: 0;
+  border-bottom-width: 1px;
+  border-radius: 0 0 var(--ck-border-radius) var(--ck-border-radius);
+}
+
+.redmine-ckeditor-wrapper.redmine-ckeditor-toolbar-bottom .ck-editor__main > .ck-editor__editable {
+  border-radius: var(--ck-border-radius) var(--ck-border-radius) 0 0;
+}

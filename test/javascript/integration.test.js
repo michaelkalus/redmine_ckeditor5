@@ -403,3 +403,18 @@ test('hides insertFile without an attachments form', async () => {
   await environment.integration.replace('issue_notes', { toolbar: { items: ['bold', 'uploadImage', 'insertFile'] } });
   assert.deepEqual(environment.createdConfigs[0].toolbar.items, ['bold']);
 });
+
+test('places the toolbar at the bottom when configured', async () => {
+  const environment = loadIntegration();
+  environment.addTextarea('issue_notes');
+  const editor = await environment.integration.replace('issue_notes', { redmineToolbarLocation: 'bottom' });
+  assert.equal(editor.ui.view.element.classList.contains('redmine-ckeditor-toolbar-bottom'), true);
+  assert.equal(environment.createdConfigs[0].redmineToolbarLocation, undefined);
+});
+
+test('keeps the toolbar at the top by default', async () => {
+  const environment = loadIntegration();
+  environment.addTextarea('issue_notes');
+  const editor = await environment.integration.replace('issue_notes', { redmineToolbarLocation: 'top' });
+  assert.equal(editor.ui.view.element.classList.contains('redmine-ckeditor-toolbar-bottom'), false);
+});

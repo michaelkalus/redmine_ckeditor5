@@ -21,3 +21,6 @@ en:
   ckeditor_mention_issues: "#issue mentions"
   ckeditor_issue_mention_backref: Add a note to mentioned issues
   ckeditor_file_uploads: Insert documents as attachments
+  ckeditor_toolbar_location: Toolbar location
+  ckeditor_toolbar_location_top: Top
+  ckeditor_toolbar_location_bottom: Bottom

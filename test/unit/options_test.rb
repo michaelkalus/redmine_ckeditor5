@@ -34,4 +34,16 @@ class RedmineCkeditorOptionsTest < ActiveSupport::TestCase
     assert_includes options[:image][:upload][:types], 'avif'
     assert_includes options[:image][:toolbar], 'resizeImage'
   end
+
+  def test_toolbar_location_defaults_to_top
+    Setting.stubs(:[]).with(:plugin_redmine_ckeditor).returns({})
+
+    assert_equal 'top', RedmineCkeditor.options[:redmineToolbarLocation]
+  end
+
+  def test_toolbar_location_bottom
+    Setting.stubs(:[]).with(:plugin_redmine_ckeditor).returns('toolbar_location' => 'bottom')
+
+    assert_equal 'bottom', RedmineCkeditor.options[:redmineToolbarLocation]
+  end
 end

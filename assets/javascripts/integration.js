@@ -191,16 +191,19 @@
     const width = config.redmineWidth;
     const uiColor = config.redmineUiColor;
     const showBlocks = config.redmineShowBlocks;
+    const toolbarLocation = config.redmineToolbarLocation;
     delete config.redmineHeight;
     delete config.redmineWidth;
     delete config.redmineUiColor;
     delete config.redmineShowBlocks;
+    delete config.redmineToolbarLocation;
 
     const promise = bundle.ClassicEditor.create(textarea, config).then(editor => {
       pending.delete(id);
       instances.set(id, editor);
       editor.sourceElement.dataset.ckeditor5Active = 'true';
       editor.ui.view.element.classList.add('redmine-ckeditor-wrapper');
+      if (toolbarLocation === 'bottom') editor.ui.view.element.classList.add('redmine-ckeditor-toolbar-bottom');
       connectPreview(preview, editor, textarea);
       if (height) editor.ui.view.element.style.setProperty('--redmine-ckeditor-height', `${parseInt(height, 10)}px`);
       if (width) editor.ui.view.element.style.width = /^\d+(?:\.\d+)?$/.test(width) ? `${width}px` : width;

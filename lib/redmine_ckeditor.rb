@@ -97,7 +97,8 @@ module RedmineCkeditor
         redmineHeight: RedmineCkeditorSetting.height,
         redmineWidth: RedmineCkeditorSetting.width,
         redmineUiColor: RedmineCkeditorSetting.ui_color,
-        redmineShowBlocks: RedmineCkeditorSetting.show_blocks?
+        redmineShowBlocks: RedmineCkeditorSetting.show_blocks?,
+        redmineToolbarLocation: RedmineCkeditorSetting.toolbar_location
       }
       defaults.deep_merge(editor_config)
     end

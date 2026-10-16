@@ -11,6 +11,10 @@
   <%= number_field_tag 'settings[height]', RedmineCkeditorSetting.height, min: 120, max: 1200 %>
 </p>
 <p>
+  <%= content_tag :label, l(:ckeditor_toolbar_location) %>
+  <%= select_tag 'settings[toolbar_location]', options_for_select([[l(:ckeditor_toolbar_location_top), 'top'], [l(:ckeditor_toolbar_location_bottom), 'bottom']], RedmineCkeditorSetting.toolbar_location) %>
+</p>
+<p>
   <%= content_tag :label, l(:ckeditor_startup_show_blocks) %>
   <%= hidden_field_tag 'settings[show_blocks]', '0' %>
   <%= check_box_tag 'settings[show_blocks]', '1', RedmineCkeditorSetting.show_blocks? %>

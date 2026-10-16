@@ -34,6 +34,11 @@ content keeps working.
   editing mode, and hidden in forms without attachments. Uploads still in
   progress are aborted when the editor is destroyed.
 - **AVIF images** are accepted by the image upload (`image.upload.types`).
+- **Toolbar at the bottom.** The plugin setting "Toolbar location" (`top` /
+  `bottom`, default `top`) puts the toolbar below the text. CKEditor 5 Classic
+  has no such option, so this is done in CSS (`.redmine-ckeditor-toolbar-bottom`
+  in `assets/stylesheets/editor.css`); the toolbar does not stick to the window
+  edge in that mode.
 
 **Server**
 
@@ -90,6 +95,7 @@ content keeps working.
 | Turn `#` issue mentions on/off | same page: "#issue mentions" (`mention_issues`, default on) |
 | Turn the backref note on/off | same page: "Add a note to mentioned issues" (`issue_mention_backref`, default on) |
 | Turn document uploads on/off | same page: "Insert documents as attachments" (`file_uploads`, default on) |
+| Toolbar location (top/bottom) | same page: "Toolbar location" (`toolbar_location`, default `top`) |
 | Toolbar, height, width, UI color | same page (upstream settings) |
 | Who gets mention e-mails, which events send mail | Redmine core: each user's e-mail notification preference and Administration > Settings > Email notifications |
 | Upload size and allowed/denied extensions | Redmine core: Administration > Settings > Files |
@@ -199,7 +205,8 @@ The legacy width, UI color, startup block outlines, and toolbar-overflow setting
 are retained. Justification buttons migrate to CKEditor 5's alignment dropdown,
 and explicit toolbar line breaks remain line breaks. CKEditor 5 does not have
 CKEditor 4 skins or Enter/Shift+Enter output modes. Its Classic editor also has
-no supported toolbar-location setting; UI theming now uses CSS custom properties
+no toolbar-location option (this fork emulates it in CSS, see
+[Fork changes](#fork-changes)); UI theming now uses CSS custom properties
 in `assets/stylesheets/editor.css`. Its `style` toolbar item is supported, but
 CKEditor 5 requires explicit `style.definitions`; an example is included in
 `config/ckeditor.yml.example`, so the old generic Styles list is not guessed.
