@@ -24,6 +24,23 @@ class RedmineCkeditorMentionsControllerTest < Redmine::ControllerTest
     assert_equal %w[login name], JSON.parse(response.body).first.keys.sort
   end
 
+  def test_very_long_query_is_capped_and_succeeds
+    get :users, params: {project_id: 1, q: "j #{'a ' * 500}"}
+
+    assert_response :success
+    assert_kind_of Array, JSON.parse(response.body)
+  end
+
+  def test_query_is_cut_to_100_chars_and_5_tokens
+    get :users, params: {project_id: 1, q: "jsmith#{' ' * 200}zzz"}
+
+    assert_response :success
+    assert_includes logins, 'jsmith'
+    get :users, params: {project_id: 1, q: 'john smith x x x zzzz'}
+
+    assert_response :success
+  end
+
   def test_requires_view_issues
     Role.find(2).remove_permission!(:view_issues)
     get :users, params: {project_id: 1, q: 'j'}

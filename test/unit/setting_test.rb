@@ -63,6 +63,12 @@ class RedmineCkeditorSettingTest < ActiveSupport::TestCase
     assert_equal %w[bold italic | insertFile], RedmineCkeditorSetting.toolbar
   end
 
+  def test_enabled_uploads_do_not_leave_adjacent_separators
+    Setting.stubs(:[]).with(:plugin_redmine_ckeditor).returns('toolbar' => 'bold,|,insertFile,|,italic')
+
+    assert_equal %w[bold | italic | insertFile], RedmineCkeditorSetting.toolbar
+  end
+
   def test_removes_insert_file_when_file_uploads_disabled
     Setting.stubs(:[]).with(:plugin_redmine_ckeditor).returns(
       'toolbar' => 'bold,insertFile,italic', 'file_uploads' => '0'

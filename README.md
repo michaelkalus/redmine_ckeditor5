@@ -15,15 +15,17 @@ plugin id `redmine_ckeditor` and adds the following on top of upstream.
 - **Czech UI.** Editor language `cs`, localized headings and a Czech plugin
   locale (`config/locales/cs.yml`).
 - **Mentions.** `@login` and `#id` mentions are stored as plain text, so
-  Redmine core detects them and sends its normal notifications.
+  Redmine core detects them and sends its normal notifications. This is done
+  by overriding the CKEditor `mention` command (not by a downcast converter),
+  so the editor inserts the plain text instead of a mention element.
   - The `@` suggestions endpoint `/redmine_ckeditor/mentions/users` needs only
     `view_issues` (not `add_issue_watchers`). It matches login, first name and
-    last name only (never e-mail) and returns only active, visible users who
-    can see the issue (or who have `view_issues` in the project when no issue
+    last name only (never e-mail) and returns only active, visible project
+    members who can see the issue (or who have `view_issues` in the project when no issue
     exists yet).
   - Quotes (`blockquote`), `pre` and `code` are not scanned for mentions.
 - **Backref note.** When an issue is mentioned as `#N`, a note "Mentioned in #N"
-  (Czech: "Zmineno v") is added to issue N. It is skipped for private issues
+  (the localized "Mentioned in" text, see the cs locale) is added to issue N. It is skipped for private issues
   and private notes, requires that the target is visible and that the author of
   the source has `add_issue_notes` on it, and is created once per source record
   (`journal:<id>` or `issue:<id>`). The author is not subscribed as a watcher

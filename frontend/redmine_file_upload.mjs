@@ -112,6 +112,7 @@ export function RedmineFileUpload(editor) {
 
   function uploadFiles(files, position) {
     if (!alive() || !enabled() || editor.isReadOnly) return;
+    if (editor.plugins.has?.('SourceEditing') && editor.plugins.get('SourceEditing').isSourceEditingMode) return;
     const { images, documents } = partitionFiles(files);
     if (!images.length && !documents.length) return;
 

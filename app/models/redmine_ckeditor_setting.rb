@@ -49,8 +49,8 @@ class RedmineCkeditorSetting
     end
 
     def normalize_insert_file(items)
-      items = items.reject { |item| item == 'insertFile' }
-      return collapse_separators(items) unless file_uploads?
+      items = collapse_separators(items.reject { |item| item == 'insertFile' })
+      return items unless file_uploads?
 
       index = items.index('uploadImage')
       if index

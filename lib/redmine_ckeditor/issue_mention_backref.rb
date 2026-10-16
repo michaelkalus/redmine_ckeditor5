@@ -4,6 +4,7 @@ module RedmineCkeditor
   module IssueMentionBackref
     PATTERN = /(?<![\w&])#(\d+)\b/
     MARKER = 'data-ckeditor-backref'
+    MAX_TARGETS = 20
 
     module_function
 
@@ -33,7 +34,14 @@ module RedmineCkeditor
     def deliver(source:, actor:, ids:, key:, href:)
       return if ids.empty? || actor.nil? || source.is_private?
 
-      Issue.where(id: ids - [source.id]).find_each do |target|
+      ids -= [source.id]
+      skipped = ids.size - MAX_TARGETS
+      if skipped.positive?
+        Rails.logger.info("redmine_ckeditor backref #{key}: skipped #{skipped} targets over the limit of #{MAX_TARGETS}")
+        ids = ids.first(MAX_TARGETS)
+      end
+
+      Issue.where(id: ids).find_each do |target|
         next unless target.visible?(actor) && target.notes_addable?(actor)
         next if target.journals.where("#{Journal.table_name}.notes LIKE ?", "%#{MARKER}=\"#{key}\"%").exists?
 

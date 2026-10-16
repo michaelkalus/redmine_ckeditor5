@@ -91,6 +91,16 @@ class RedmineCkeditorIssueMentionBackrefTest < ActiveSupport::TestCase
     end
   end
 
+  def test_at_most_20_targets_per_source_save
+    ckeditor do
+      targets = Array.new(21) { Issue.generate!(project_id: 1) }
+      add_note(Issue.find(1), "<p>#{targets.map { |t| "##{t.id}" }.join(' ')}</p>")
+
+      assert_equal 20, targets.sum { |t| backrefs(t.id).size }
+      assert_empty backrefs(targets.last.id)
+    end
+  end
+
   def test_two_notes_create_two_backrefs
     ckeditor do
       add_note(Issue.find(1), '<p>#2</p>')

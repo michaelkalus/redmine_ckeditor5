@@ -18,7 +18,7 @@ test('clipboardAction only handles transfers with documents and no html', () => 
   assert.equal(clipboardAction({ files: [pdf], html: '<p>x</p>' }), 'pass');
 });
 
-function fakeEditor({ result, error, status = 'idle', config = {}, form = true, schema = {}, uploadImage = true, readOnly = false, pending = false, markerRoot, afterImage, abortThrows = false } = {}) {
+function fakeEditor({ result, error, status = 'idle', config = {}, form = true, schema = {}, uploadImage = true, readOnly = false, pending = false, markerRoot, afterImage, abortThrows = false, sourceMode } = {}) {
   const markers = new Map();
   const listeners = new Map();
   const calls = { inserted: [], alerts: [], destroyed: [], executed: [], kinds: [], selection: [], log: [], paragraphs: [], aborted: [], refreshed: 0, markersAt: [] };
@@ -75,7 +75,8 @@ function fakeEditor({ result, error, status = 'idle', config = {}, form = true, 
       change: cb => cb(writer)
     },
     plugins: {
-      get: () => ({
+      has: name => name === 'SourceEditing' && sourceMode !== undefined,
+      get: name => name === 'SourceEditing' ? { isSourceEditingMode: sourceMode } : ({
         createLoader: file => {
           calls.kinds.push(editor._redmineUploadKind);
           const loader = { file, status };
@@ -250,6 +251,18 @@ test('destroying the editor aborts active loaders without alerts', async () => {
   assert.equal(calls.aborted.length, 1);
   assert.deepEqual(calls.alerts, []);
   assert.equal(calls.destroyed.length, 1);
+});
+
+test('source editing mode does not upload', () => {
+  const { editor, calls } = fakeEditor({ sourceMode: true });
+  editor._redmineFileUpload.uploadFiles([pdf]);
+  assert.equal(calls.kinds.length, 0);
+});
+
+test('wysiwyg mode with the source editing plugin uploads', () => {
+  const { editor, calls } = fakeEditor({ sourceMode: false });
+  editor._redmineFileUpload.uploadFiles([pdf]);
+  assert.equal(calls.kinds.length, 1);
 });
 
 test('read-only editor does not upload', () => {
