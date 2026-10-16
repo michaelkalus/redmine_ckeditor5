@@ -1,15 +1,13 @@
 // TEST smoke for the fork extensions (not run by CI).
 // Env: RM_URL, RM_PASSWORD_FILE, RM_EDITOR_USER, RM_TARGET_USER, RM_ADMIN_USER,
 //      RM_API_KEY_FILE (editor API key), RM_PROJECT, RM_LEGACY_ISSUES (comma ids),
-//      RM_SHOTS (screenshot dir), RM_SSH_HOST + RM_CONTAINER (read-only rails runner).
+//      RM_SHOTS (screenshot dir), RM_SSH_HOST + RM_CONTAINER (read-only rails runner),
+//      RM_ALLOWED_HOSTS (TEST host allowlist).
 // Run: NODE_PATH=<dir with playwright> node test/smoke/fork_smoke.mjs
 import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-
-const require = createRequire(path.join(process.env.NODE_PATH || process.cwd(), 'noop.js'));
-const { chromium } = require('playwright');
 
 function env(name, fallback) {
   const v = process.env[name];
@@ -20,12 +18,30 @@ function env(name, fallback) {
   return v;
 }
 
-const BASE = env('RM_URL').replace(/\/$/, '');
-const CONTAINER = env('RM_CONTAINER', '');
-if (!/^https?:\/\/[^/]+:8889$/.test(BASE) || CONTAINER === 'redmine-prod' || (CONTAINER && CONTAINER !== 'redmine-test')) {
-  console.error('refusing to run: RM_URL must be the TEST instance (:8889) and RM_CONTAINER, if set, must be redmine-test');
+function refuse(why) {
+  console.error('refusing to run: ' + why);
   process.exit(2);
 }
+
+function testBase(raw) {
+  let u;
+  try { u = new URL(raw); } catch (e) { refuse('RM_URL is not a valid URL'); }
+  const hosts = env('RM_ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',').map(h => h.trim()).filter(Boolean);
+  if (u.protocol !== 'http:' && u.protocol !== 'https:') refuse('RM_URL protocol must be http or https');
+  if (u.port !== '8889') refuse('RM_URL port must be 8889 (TEST)');
+  if (u.username || u.password) refuse('RM_URL must not contain credentials');
+  if (!['', '/'].includes(u.pathname) || u.search || u.hash) refuse('RM_URL must be a bare origin');
+  if (!hosts.includes(u.hostname)) refuse('RM_URL host ' + u.hostname + ' not in RM_ALLOWED_HOSTS');
+  return u.origin;
+}
+
+const BASE = testBase(env('RM_URL'));
+const CONTAINER = env('RM_CONTAINER', '');
+if (CONTAINER && CONTAINER !== 'redmine-test') refuse('RM_CONTAINER, if set, must be redmine-test');
+
+const require = createRequire(path.join(process.env.NODE_PATH || process.cwd(), 'noop.js'));
+const { chromium } = require('playwright');
+
 const PW = fs.readFileSync(env('RM_PASSWORD_FILE'), 'utf8').trim();
 const KEY = fs.readFileSync(env('RM_API_KEY_FILE'), 'utf8').trim();
 const EDITOR = env('RM_EDITOR_USER');
