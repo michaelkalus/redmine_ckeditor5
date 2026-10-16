@@ -182,7 +182,7 @@
     }
     const preview = createPreview(textarea, config.redminePreviewUrl);
     delete config.redminePreviewUrl;
-    const supportsAttachments = textarea.closest('form')
+    const supportsAttachments = textarea.closest('[data-redmine-attachments]') || textarea.closest('form')
       ?.querySelector('.attachments_form input[type="file"][name^="attachments["]');
     if (!supportsAttachments && Array.isArray(config.toolbar?.items)) {
       config.toolbar.items = config.toolbar.items.filter(item => item !== 'uploadImage' && item !== 'insertFile');

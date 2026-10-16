@@ -58,6 +58,7 @@ import {
 import { ClassicEditor } from 'ckeditor5';
 import { RedmineMentions, buildMentionFeeds } from './redmine_mentions.mjs';
 import { RedmineFileUpload } from './redmine_file_upload.mjs';
+import { attachmentsTarget } from './redmine_attachments.mjs';
 import 'ckeditor5/ckeditor5.css';
 import csTranslations from 'ckeditor5/translations/cs.js';
 
@@ -72,10 +73,9 @@ class RedmineUploadAdapter {
   async upload() {
     const file = await this.loader.file;
     const uploadUrl = this.editor.config.get(this.kind === 'file' ? 'redmineUpload.fileUploadUrl' : 'redmineUpload.uploadUrl');
-    const form = this.editor.sourceElement?.closest('form');
-    const attachmentInput = form?.querySelector('.attachments_form input[type="file"][name^="attachments["]');
+    const form = attachmentsTarget(this.editor.sourceElement);
 
-    if (!uploadUrl || !form || !attachmentInput) {
+    if (!uploadUrl || !form) {
       throw new Error('Uploads are not available in this form.');
     }
 

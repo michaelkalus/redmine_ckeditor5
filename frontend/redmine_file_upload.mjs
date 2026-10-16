@@ -1,3 +1,5 @@
+import { attachmentsTarget } from './redmine_attachments.mjs';
+
 export const IMAGE_TYPES = ['image/avif', 'image/bmp', 'image/gif', 'image/jpeg', 'image/png', 'image/tiff', 'image/webp'];
 const MARKER_GROUP = 'redmineFileUpload';
 
@@ -17,7 +19,7 @@ export function clipboardAction({ files, html }) {
 }
 
 function hasAttachmentsForm(editor) {
-  return Boolean(editor.sourceElement?.closest('form')?.querySelector('.attachments_form input[type="file"][name^="attachments["]'));
+  return Boolean(attachmentsTarget(editor.sourceElement));
 }
 
 export function textInsertionPosition(editor, writer, position, element) {
@@ -134,9 +136,14 @@ export function RedmineFileUpload(editor) {
 
   editor.on('ready', () => {
     editor.editing.view.document.on('clipboardInput', (evt, data) => {
-      if (!enabled() || editor.isReadOnly) return;
+      if (editor.isReadOnly) return;
       const files = Array.from(data.dataTransfer?.files || []);
       const html = data.dataTransfer?.getData('text/html') || '';
+      if (files.length && !html.trim() && !hasAttachmentsForm(editor)) {
+        evt.stop();
+        return;
+      }
+      if (!enabled()) return;
       if (clipboardAction({ files, html }) !== 'handle') return;
 
       evt.stop();

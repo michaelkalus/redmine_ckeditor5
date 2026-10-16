@@ -18,7 +18,7 @@ test('clipboardAction only handles transfers with documents and no html', () => 
   assert.equal(clipboardAction({ files: [pdf], html: '<p>x</p>' }), 'pass');
 });
 
-function fakeEditor({ result, error, status = 'idle', config = {}, form = true, schema = {}, uploadImage = true, readOnly = false, pending = false, markerRoot, afterImage, abortThrows = false, sourceMode } = {}) {
+function fakeEditor({ result, error, status = 'idle', config = {}, form = true, schema = {}, uploadImage = true, readOnly = false, pending = false, markerRoot, afterImage, abortThrows = false, sourceMode, host } = {}) {
   const markers = new Map();
   const listeners = new Map();
   const calls = { inserted: [], alerts: [], destroyed: [], executed: [], kinds: [], selection: [], log: [], paragraphs: [], aborted: [], refreshed: 0, markersAt: [] };
@@ -51,7 +51,13 @@ function fakeEditor({ result, error, status = 'idle', config = {}, form = true, 
     fire: name => listeners.get(name)?.(),
     conversion: { for: () => ({ markerToElement: () => {} }) },
     config: { get: key => ({ 'redmineUpload.fileUploadUrl': '/u?kind=file', ...config })[key] },
-    sourceElement: { closest: () => (form ? { querySelector: () => ({}) } : null) },
+    sourceElement: {
+      closest: selector => {
+        if (selector === '[data-redmine-attachments]') return host || null;
+        return form ? { querySelector: () => ({}) } : null;
+      }
+    },
+    editing: { view: { document: { on: (name, callback) => listeners.set(`view:${name}`, callback) } }, mapper: { toModelRange: () => ({ start: 'DROP' }) } },
     commands: {
       get: name => (name === 'uploadImage' ? {
         get isEnabled() { return typeof uploadImage === 'function' ? uploadImage(current) : uploadImage; },
@@ -100,7 +106,7 @@ function fakeEditor({ result, error, status = 'idle', config = {}, form = true, 
   };
   global.window = { alert: message => calls.alerts.push(message) };
   RedmineFileUpload(editor);
-  return { editor, markers, calls };
+  return { editor, markers, calls, listeners };
 }
 
 const flush = () => new Promise(resolve => setImmediate(resolve));
@@ -277,5 +283,46 @@ test('images fall back to document uploads when uploadImage is disabled', async 
   editor._redmineFileUpload.uploadFiles([png]);
   await flush();
   assert.deepEqual(calls.executed, []);
+  assert.deepEqual(calls.kinds, ['file']);
+});
+
+function clipboard(files, html = '') {
+  let stopped = false;
+  return {
+    evt: { stop: () => { stopped = true; } },
+    data: { dataTransfer: { files, getData: type => (type === 'text/html' ? html : '') } },
+    stopped: () => stopped
+  };
+}
+
+function pasteInto(listeners, files, html = '') {
+  let stopped = false;
+  listeners.get('ready')();
+  listeners.get('view:clipboardInput')(
+    { stop: () => { stopped = true; } },
+    { dataTransfer: { files, getData: type => (type === 'text/html' ? html : '') } }
+  );
+  return stopped;
+}
+
+test('files pasted where no attachments target exists are dropped silently', async () => {
+  const { listeners, calls } = fakeEditor({ form: false });
+  assert.equal(pasteInto(listeners, [png]), true);
+  assert.equal(pasteInto(listeners, [pdf]), true);
+  await flush();
+  assert.deepEqual(calls.alerts, []);
+  assert.deepEqual(calls.executed, []);
+  assert.deepEqual(calls.kinds, []);
+});
+
+test('rich text paste without an attachments target is left to the editor', () => {
+  const { listeners } = fakeEditor({ form: false });
+  assert.equal(pasteInto(listeners, [png], '<p>x</p>'), false);
+});
+
+test('an element marked data-redmine-attachments enables uploads outside forms', async () => {
+  const { editor, calls } = fakeEditor({ form: false, host: { dataset: {} }, result: { default: '/a/1/doc.pdf', filename: 'doc.pdf', id: 1 } });
+  editor._redmineFileUpload.uploadFiles([pdf]);
+  await flush();
   assert.deepEqual(calls.kinds, ['file']);
 });

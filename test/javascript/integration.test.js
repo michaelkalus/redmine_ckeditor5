@@ -418,3 +418,11 @@ test('keeps the toolbar at the top by default', async () => {
   const editor = await environment.integration.replace('issue_notes', { redmineToolbarLocation: 'top' });
   assert.equal(editor.ui.view.element.classList.contains('redmine-ckeditor-toolbar-bottom'), false);
 });
+
+test('keeps upload buttons when a data-redmine-attachments host wraps the editor', async () => {
+  const environment = loadIntegration({ attachmentInput: null });
+  const textarea = environment.addTextarea('issue_notes');
+  textarea.closest = selector => (selector === '[data-redmine-attachments]' ? {} : null);
+  await environment.integration.replace('issue_notes', { toolbar: { items: ['bold', 'uploadImage', 'insertFile'] } });
+  assert.deepEqual(environment.createdConfigs[0].toolbar.items, ['bold', 'uploadImage', 'insertFile']);
+});

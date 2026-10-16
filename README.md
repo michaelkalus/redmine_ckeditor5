@@ -33,6 +33,12 @@ content keeps working.
   and documents uploads both. The button is disabled in read-only and source
   editing mode, and hidden in forms without attachments. Uploads still in
   progress are aborted when the editor is destroyed.
+- **Attachments outside the issue form.** Uploads work in a `<form>` with
+  Redmine's attachments field, or inside any element marked
+  `data-redmine-attachments` (the hidden `attachments[...][token]` fields are
+  added there, so the caller must send them and save the attachments). Where
+  neither exists, pasted or dropped files are ignored silently instead of
+  showing an error.
 - **AVIF images** are accepted by the image upload (`image.upload.types`).
 - **Toolbar at the bottom.** The plugin setting "Toolbar location" (`top` /
   `bottom`, default `top`) puts the toolbar below the text. CKEditor 5 Classic
