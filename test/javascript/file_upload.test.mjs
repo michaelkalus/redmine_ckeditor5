@@ -18,21 +18,26 @@ test('clipboardAction only handles transfers with documents and no html', () => 
   assert.equal(clipboardAction({ files: [pdf], html: '<p>x</p>' }), 'pass');
 });
 
-function fakeEditor({ result, error, status = 'idle', config = {}, form = true, schema = {}, uploadImage = true, readOnly = false, pending = false, markerRoot } = {}) {
+function fakeEditor({ result, error, status = 'idle', config = {}, form = true, schema = {}, uploadImage = true, readOnly = false, pending = false, markerRoot, afterImage, abortThrows = false } = {}) {
   const markers = new Map();
   const listeners = new Map();
-  const calls = { inserted: [], alerts: [], destroyed: [], executed: [], kinds: [], selection: [], log: [], paragraphs: [], aborted: [] };
+  const calls = { inserted: [], alerts: [], destroyed: [], executed: [], kinds: [], selection: [], log: [], paragraphs: [], aborted: [], refreshed: 0, markersAt: [] };
+  let current = 'SEL';
   const key = at => (at && typeof at === 'object' ? at.at : at);
-  const position = at => ({ at, ...(markerRoot ? { root: markerRoot } : {}), getShiftedBy: n => ({ at, shift: n }) });
+  const position = (at, root) => ({ at, ...(root ? { root } : {}), getShiftedBy: n => ({ at, shift: n }) });
   const writer = {
     createRange: at => ({ at }),
     addMarker: (name, { range }) => {
       calls.log.push('marker');
-      markers.set(name, { getStart: () => position(key(range.at)) });
+      calls.markersAt.push(key(range.at));
+      markers.set(name, { getStart: () => position(key(range.at), markerRoot) });
     },
     removeMarker: name => markers.delete(name),
     insertText: (...args) => calls.inserted.push(args),
-    setSelection: at => calls.selection.push(at),
+    setSelection: at => {
+      calls.selection.push(at);
+      current = at;
+    },
     createElement: name => ({ name }),
     insert: (element, at) => calls.paragraphs.push([element.name, key(at)]),
     createPositionAfter: element => `after:${element}`,
@@ -47,14 +52,20 @@ function fakeEditor({ result, error, status = 'idle', config = {}, form = true, 
     conversion: { for: () => ({ markerToElement: () => {} }) },
     config: { get: key => ({ 'redmineUpload.fileUploadUrl': '/u?kind=file', ...config })[key] },
     sourceElement: { closest: () => (form ? { querySelector: () => ({}) } : null) },
-    commands: { get: name => (name === 'uploadImage' ? { isEnabled: uploadImage } : null) },
+    commands: {
+      get: name => (name === 'uploadImage' ? {
+        get isEnabled() { return typeof uploadImage === 'function' ? uploadImage(current) : uploadImage; },
+        refresh: () => { calls.refreshed++; }
+      } : null)
+    },
     execute: (name, args) => {
       calls.log.push('execute');
       calls.executed.push([name, args]);
+      if (afterImage) current = afterImage;
     },
     model: {
       markers: { get: name => markers.get(name), has: name => markers.has(name) },
-      document: { selection: { getFirstPosition: () => 'SEL', getSelectedElement: () => schema.selected || null } },
+      document: { selection: { getFirstPosition: () => position(current), getLastPosition: () => position(current), getSelectedElement: () => schema.selected || null } },
       schema: {
         checkChild: (at, child) => check(child === '$text' ? schema.text : schema.paragraph, at),
         checkAttribute: () => schema.link !== false,
@@ -73,10 +84,12 @@ function fakeEditor({ result, error, status = 'idle', config = {}, form = true, 
             if (pending) return new Promise((_resolve, rejecter) => { reject = rejecter; });
             return error ? Promise.reject(error) : Promise.resolve(result);
           };
+          const throws = abortThrows && calls.kinds.length === 1;
           loader.abort = () => {
             loader.status = 'aborted';
             calls.aborted.push(loader);
             reject?.(new Error('aborted'));
+            if (throws) throw new Error('abort failed');
           };
           return loader;
         },
@@ -141,11 +154,48 @@ test('nothing happens without fileUploadUrl or attachments form', () => {
 
 const done = { default: '/attachments/download/5/doc.pdf', filename: 'doc.pdf', id: 5 };
 
-test('mixed drop creates document markers before uploadImage runs', async () => {
-  const { editor, calls } = fakeEditor({ result: done });
+test('mixed drop runs uploadImage first and places markers at the post-image selection', async () => {
+  const { editor, calls } = fakeEditor({ result: done, afterImage: 'AFTER_IMG' });
   editor._redmineFileUpload.uploadFiles([png, pdf], 'DROP');
-  assert.deepEqual(calls.log, ['marker', 'execute']);
+  assert.deepEqual(calls.log, ['execute', 'marker']);
+  assert.deepEqual(calls.markersAt, ['AFTER_IMG']);
   await flush();
+  assert.equal(calls.inserted[0][2].at, 'AFTER_IMG');
+});
+
+test('uploadImage availability is decided after the drop selection is set', () => {
+  const { editor, calls } = fakeEditor({ result: done, uploadImage: at => at === 'DROP' });
+  editor._redmineFileUpload.uploadFiles([png], 'DROP');
+  assert.equal(calls.refreshed, 1);
+  assert.deepEqual(calls.executed, [['uploadImage', { file: [png] }]]);
+  assert.deepEqual(calls.kinds, []);
+});
+
+test('mixed drop whose marker ends in the graveyard still inserts the link at the selection', async () => {
+  const { editor, calls } = fakeEditor({ result: done, afterImage: 'AFTER_IMG', markerRoot: { rootName: '$graveyard' } });
+  editor._redmineFileUpload.uploadFiles([png, pdf], 'DROP');
+  await flush();
+  assert.equal(calls.inserted.length, 2);
+  assert.equal(calls.inserted[0][0], 'doc.pdf');
+  assert.equal(calls.inserted[0][2].at, 'AFTER_IMG');
+  assert.deepEqual(calls.alerts, []);
+});
+
+test('uploadFiles does nothing after the editor is destroyed', () => {
+  const { editor, calls } = fakeEditor({ result: done });
+  editor.fire('destroy');
+  editor._redmineFileUpload.uploadFiles([pdf, png]);
+  assert.deepEqual(calls.kinds, []);
+  assert.deepEqual(calls.executed, []);
+});
+
+test('a throwing abort does not stop other aborts on destroy', async () => {
+  const { editor, calls } = fakeEditor({ pending: true, abortThrows: true });
+  editor._redmineFileUpload.uploadFiles([pdf, { name: 'b.docx', type: 'application/msword' }]);
+  editor.fire('destroy');
+  await flush();
+  assert.equal(calls.aborted.length, 2);
+  assert.deepEqual(calls.alerts, []);
 });
 
 test('position without text falls back to the nearest text range', async () => {
@@ -182,11 +232,12 @@ test('disallowed linkHref inserts the plain filename', async () => {
   assert.deepEqual(calls.inserted[0][1], {});
 });
 
-test('marker moved to the graveyard inserts nothing', async () => {
+test('marker moved to the graveyard re-resolves the position from the selection', async () => {
   const { editor, markers, calls } = fakeEditor({ result: done, markerRoot: { rootName: '$graveyard' } });
   editor._redmineFileUpload.uploadFiles([pdf]);
   await flush();
-  assert.equal(calls.inserted.length, 0);
+  assert.equal(calls.inserted[0][2].at, 'SEL');
+  assert.equal(calls.inserted.length, 2);
   assert.equal(markers.size, 0);
 });
 

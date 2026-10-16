@@ -44,7 +44,11 @@ export function RedmineFileUpload(editor) {
 
   editor.on('destroy', () => {
     destroyed = true;
-    active.forEach(loader => loader.abort());
+    active.forEach(loader => {
+      try {
+        loader.abort();
+      } catch (_error) {}
+    });
     active.clear();
   });
 
@@ -67,11 +71,16 @@ export function RedmineFileUpload(editor) {
     }
   }
 
+  function selectionTextPosition(writer) {
+    const selection = editor.model.document.selection;
+    return textInsertionPosition(editor, writer, selection.getLastPosition(), selection.getSelectedElement?.());
+  }
+
   function insertLink(writer, name, data, file) {
     const marker = editor.model.markers.get(name);
     if (!marker) return;
     let start = marker.getStart();
-    if (start.root?.rootName === '$graveyard') return;
+    if (start.root?.rootName === '$graveyard') start = selectionTextPosition(writer);
     const schema = editor.model.schema;
     if (!schema.checkChild(start, '$text')) start = textInsertionPosition(editor, writer, start);
     const text = data?.filename || file.name;
@@ -102,20 +111,21 @@ export function RedmineFileUpload(editor) {
   }
 
   function uploadFiles(files, position) {
-    if (!enabled() || editor.isReadOnly) return;
+    if (!alive() || !enabled() || editor.isReadOnly) return;
     const { images, documents } = partitionFiles(files);
-    const withImages = images.length > 0 && Boolean(editor.commands.get('uploadImage')?.isEnabled);
+    if (!images.length && !documents.length) return;
+
+    if (position) editor.model.change(writer => writer.setSelection(position));
+    const command = editor.commands.get('uploadImage');
+    command?.refresh?.();
+    const withImages = images.length > 0 && Boolean(command?.isEnabled);
     const queue = withImages ? documents : documents.concat(images);
-    if (!queue.length && !withImages) return;
+    if (withImages) editor.execute('uploadImage', { file: images });
+    if (!queue.length) return;
 
     editor.model.change(writer => {
-      if (position) writer.setSelection(position);
-      if (queue.length) {
-        const selection = editor.model.document.selection;
-        const at = textInsertionPosition(editor, writer, selection.getFirstPosition(), selection.getSelectedElement?.());
-        queue.forEach(file => uploadDocument(file, writer, at));
-      }
-      if (withImages) editor.execute('uploadImage', { file: images });
+      const at = selectionTextPosition(writer);
+      queue.forEach(file => uploadDocument(file, writer, at));
     });
   }
 
