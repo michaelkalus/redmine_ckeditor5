@@ -8,6 +8,7 @@ class RedmineCkeditorMentionablePatchTest < ActiveSupport::TestCase
            :enumerations, :workflows
 
   def setup
+    RedmineCkeditor.apply_patch
     User.current = nil
     ActionMailer::Base.deliveries.clear
   end
