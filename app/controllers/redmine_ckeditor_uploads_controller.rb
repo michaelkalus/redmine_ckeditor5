@@ -10,11 +10,30 @@ class RedmineCkeditorUploadsController < ApplicationController
 
   def create
     upload = params[:upload]
+    return create_file(upload) if params[:kind] == 'file'
+
     unless valid_image?(upload)
       render json: {error: l(:ckeditor_image_only)}, status: :unprocessable_entity
       return
     end
 
+    save_attachment(upload)
+  end
+
+  private
+
+  def create_file(upload)
+    return render_404 unless RedmineCkeditorSetting.file_uploads?
+
+    unless upload.respond_to?(:original_filename)
+      render json: {error: l(:ckeditor_upload_missing)}, status: :unprocessable_entity
+      return
+    end
+
+    save_attachment(upload)
+  end
+
+  def save_attachment(upload)
     attachment = Attachment.new(file: upload, author: User.current)
     if attachment.save
       render json: {
@@ -27,8 +46,6 @@ class RedmineCkeditorUploadsController < ApplicationController
       render json: {error: attachment.errors.full_messages.join(', ')}, status: :unprocessable_entity
     end
   end
-
-  private
 
   def authorize_attachment_upload = authorize_global('attachments', 'upload')
 
