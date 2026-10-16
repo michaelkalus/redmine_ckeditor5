@@ -2,7 +2,7 @@
 // Env: RM_URL, RM_PASSWORD_FILE, RM_EDITOR_USER, RM_TARGET_USER, RM_ADMIN_USER,
 //      RM_API_KEY_FILE (editor API key), RM_PROJECT, RM_LEGACY_ISSUES (comma ids),
 //      RM_SHOTS (screenshot dir), RM_SSH_HOST + RM_CONTAINER (read-only rails runner),
-//      RM_ALLOWED_HOSTS (TEST host allowlist).
+//      RM_ALLOWED_HOSTS (TEST host allowlist), RM_ALLOWED_CONTAINERS (TEST container allowlist).
 // Run: NODE_PATH=<dir with playwright> node test/smoke/fork_smoke.mjs
 import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
@@ -37,7 +37,8 @@ function testBase(raw) {
 
 const BASE = testBase(env('RM_URL'));
 const CONTAINER = env('RM_CONTAINER', '');
-if (CONTAINER && CONTAINER !== 'redmine-test') refuse('RM_CONTAINER, if set, must be redmine-test');
+const CONTAINERS = env('RM_ALLOWED_CONTAINERS', '').split(',').map(c => c.trim()).filter(Boolean);
+if (CONTAINER && !CONTAINERS.includes(CONTAINER)) refuse('RM_CONTAINER ' + CONTAINER + ' not in RM_ALLOWED_CONTAINERS');
 
 const require = createRequire(path.join(process.env.NODE_PATH || process.cwd(), 'noop.js'));
 const { chromium } = require('playwright');
